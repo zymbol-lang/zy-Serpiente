@@ -1,0 +1,142 @@
+// Serpiente — lógica del juego: movimiento, colisiones, spawn de comida
+// AN = ancho interior del tablero, AL = alto interior del tablero
+// Área de juego: filas 2..AL+1, cols 2..AN+1
+// Cuerpo de la serpiente: arreglo de tuplas (fila, col), índice 1 = cabeza
+//
+// Aleatorio: LCG (Numerical Recipes) implementado en Zymbol puro.
+// La semilla se pasa explícitamente entre llamadores — sin estado oculto.
+// Una llamada BashExec al inicio produce la semilla inicial.
+
+# logica {
+    #> { lcg_sig, rango_aleatorio, fruta_aleatoria, nueva_dir, nueva_comida, tick_comida, mover }
+
+    // Avanza la semilla un paso: LCG Numerical Recipes (a=1664525, c=1013904223, m=2^31-1)
+    lcg_sig(semilla) {
+        <~ (1664525 * semilla + 1013904223) % 2147483647
+    }
+
+    // Entero aleatorio en [min, max] — retorna (valor, semilla_siguiente)
+    rango_aleatorio(semilla, min, max) {
+        sig = lcg_sig(semilla)
+        val = sig % (max - min + 1) + min
+        <~ (val, sig)
+    }
+
+    // Emoji de fruta aleatorio — retorna (emoji, semilla_siguiente)
+    fruta_aleatoria(semilla) {
+        frutas = ["🍎", "🍊", "🍋", "🍇", "🍓", "🫐", "🍑", "🥝", "🍒", "🍉"]
+        [ind, s1] = rango_aleatorio(semilla, 1, 10)
+        <~ (frutas[ind], s1)
+    }
+
+    // Genera posición de comida sin superponerse con la serpiente — retorna (pos, semilla_siguiente)
+    nueva_comida(serpiente, AN, AL, semilla) {
+        // Columna máxima = AN (no AN+1) — el emoji ocupa 2 cols, la última col válida es AN
+        [r, s1] = rango_aleatorio(semilla, 2, AL + 1)
+        [c, s2] = rango_aleatorio(s1,     2, AN)
+        pos = (r, c)
+        ? _en_serpiente(serpiente, pos) {
+            [r, s1] = rango_aleatorio(s2, 2, AL + 1)
+            [c, s2] = rango_aleatorio(s1, 2, AN)
+            pos = (r, c)
+        }
+        <~ (pos, s2)
+    }
+
+    // Genera nueva comida y fruta solo si comio=#1
+    // Retorna (comida, fruta, semilla) sin cambios cuando no se comió
+    tick_comida(comio, serpiente, AN, AL, semilla, comida, fruta) {
+        ? !comio { <~ (comida, fruta, semilla) }
+        [npos, s1] = nueva_comida(serpiente, AN, AL, semilla)
+        [nfru, s2] = fruta_aleatoria(s1)
+        <~ (npos, nfru, s2)
+    }
+
+    // Mapea tecla cruda a dirección interna ('↑' '↓' '←' '→')
+    nueva_dir(tecla, dir) {
+        nueva = dir
+
+        ? tecla == 'w' || tecla == '↑' { nueva = '↑' }
+        ? tecla == 's' || tecla == '↓' { nueva = '↓' }
+        ? tecla == 'a' || tecla == '←' { nueva = '←' }
+        ? tecla == 'd' || tecla == '→' { nueva = '→' }
+
+        inverso = #0
+        ? dir == '↑' && nueva == '↓' { inverso = #1 }
+        ? dir == '↓' && nueva == '↑' { inverso = #1 }
+        ? dir == '←' && nueva == '→' { inverso = #1 }
+        ? dir == '→' && nueva == '←' { inverso = #1 }
+
+        ? inverso { <~ dir }
+        <~ nueva
+    }
+
+    // Verifica si una posición coincide con algún segmento de la serpiente
+    _en_serpiente(serpiente, pos) {
+        i = 1
+        @ i <= serpiente$# {
+            ? serpiente[i] == pos { <~ #1 }
+            i++
+        }
+        <~ #0
+    }
+
+    // Avanza la serpiente un paso
+    // Retorna (vivo, serpiente, puntos, comio)
+    // vivo=#0 → colisión; comio=#1 → comida ingerida (el llamador genera nueva comida)
+    mover(serpiente, dir, comida, puntos, AN, AL) {
+        [fr_cab, fc_cab] = serpiente[1]
+
+        nf = fr_cab
+        nc = fc_cab
+        ? dir == '↑' { nf = fr_cab - 1 }
+        ? dir == '↓' { nf = fr_cab + 1 }
+        ? dir == '←' { nc = fc_cab - 1 }
+        ? dir == '→' { nc = fc_cab + 1 }
+
+        cab = (nf, nc)
+
+        // Colisión con pared
+        ? nf < 2 || nf > AL+1 || nc < 2 || nc > AN+1 {
+            <~ (#0, serpiente, puntos, #0, (0, 0))
+        }
+
+        // Auto-colisión (la cola vacía este tick, excluirla)
+        lon = serpiente$#
+        i = 1
+        @ i < lon {
+            ? serpiente[i] == cab { <~ (#0, serpiente, puntos, #0, (0, 0)) }
+            i++
+        }
+
+        // Comida ingerida — emoji ocupa 2 cols: col izquierda O derecha cuenta
+        // cab es la posición exacta donde tocó (puede ser col izquierda o derecha del emoji)
+        [fr_com, fc_com] = comida
+        ? cab == comida || cab == (fr_com, fc_com + 1) {
+            // Pasar a través: cabeza avanza un paso más allá de la comida
+            // Si el siguiente paso choca con pared, cabeza queda en la comida
+            nf_sig = nf
+            nc_sig = nc
+            ? dir == '↑' { nf_sig = nf - 1 }
+            ? dir == '↓' { nf_sig = nf + 1 }
+            ? dir == '←' { nc_sig = nc - 1 }
+            ? dir == '→' { nc_sig = nc + 1 }
+            ? nf_sig < 2 || nf_sig > AL+1 || nc_sig < 2 || nc_sig > AN+1 {
+                serpiente = serpiente$+[1] cab
+                puntos = puntos + 1
+                <~ (#1, serpiente, puntos, #1, cab)
+            }
+            // Insertar cab como segmento 2 — queda entre la cabeza y el cuerpo
+            // La cola de la serpiente borrará naturalmente el "@" cuando llegue a cab
+            serpiente = serpiente$+[1] cab
+            serpiente = serpiente$+[1] (nf_sig, nc_sig)
+            puntos = puntos + 1
+            <~ (#1, serpiente, puntos, #1, cab)
+        }
+
+        // Movimiento normal: añadir nueva cabeza, eliminar cola
+        serpiente = serpiente$+[1] cab
+        serpiente = serpiente$-[-1]
+        <~ (#1, serpiente, puntos, #0, (0, 0))
+    }
+}

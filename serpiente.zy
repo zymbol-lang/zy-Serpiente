@@ -1,0 +1,65 @@
+// Serpiente — juego clásico de serpiente en la terminal
+// Controles: WASD o flechas — Q para salir — P para pausar
+// Ejecutar: zymbol run serpiente.zy
+
+<# ./logica <= l
+<# ./dibujo <= d
+
+// Consultar tamaño real de la terminal y derivar dimensiones internas del tablero
+[filas, cols] = >>?
+AN = cols  - 2
+AL = filas - 2
+
+fila_c = AL / 2 + 1
+col_c  = AN / 2 + 1
+
+// Semilla LCG desde tres fuentes de entropía independientes — sh puro, sin bash
+_ns  = <\ "date +%N" \>
+_pid = <\ "echo $$" \>
+_rnd = <\ "od -An -N2 -tu2 /dev/urandom | tr -d ' \n'" \>
+semilla = (#|_ns| + #|_pid| * 31337 + #|_rnd| * 65537) % 2147483647
+
+>>| {
+    retardo = d::menu_velocidad(AN, AL)
+
+    @:main {
+        serpiente = [(fila_c, col_c), (fila_c, col_c-1), (fila_c, col_c-2)]
+        dir    = '→'
+        puntos = 0
+
+        [comida, semilla] = l::nueva_comida(serpiente, AN, AL, semilla)
+        [fruta,  semilla] = l::fruta_aleatoria(semilla)
+
+        d::dibujar_inicio(serpiente, comida, fruta, puntos, AN, AL)
+
+        @:game {
+            <<|? tecla
+
+            ? tecla == 'q' || tecla == 'Q' { @:game! }
+
+            ? tecla == 'p' || tecla == 'P' {
+                d::pausa(AN, AL)
+                d::dibujar_inicio(serpiente, comida, fruta, puntos, AN, AL)
+            }
+
+            ? tecla <> '\0' {
+                dir = l::nueva_dir(tecla, dir)
+            }
+
+            cola_vieja   = serpiente[serpiente$#]
+            comida_vieja = comida
+
+            [vivo, serpiente, puntos, comio, _cab] = l::mover(serpiente, dir, comida, puntos, AN, AL)
+
+            [comida, fruta, semilla] = l::tick_comida(comio, serpiente, AN, AL, semilla, comida, fruta)
+
+            ? !vivo { @:game! }
+
+            d::dibujar(serpiente, cola_vieja, comio, comida_vieja, comida, fruta, puntos, AN, AL)
+            @~ retardo
+        }
+
+        accion = d::fin_juego(puntos, AN, AL)
+        ? accion == 's' { @:main! }
+    }
+}
