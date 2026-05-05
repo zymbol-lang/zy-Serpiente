@@ -16,13 +16,7 @@
 
     // Construye una línea horizontal de n copias de "─"
     _linea_h(n) {
-        s = ""
-        i = 1
-        @ i <= n {
-            s = s $++ "─"
-            i++
-        }
-        <~ s
+        <~ "─" $* n
     }
 
     // Dirección de un punto hacia otro: 'R' 'L' 'U' 'D'
@@ -68,11 +62,11 @@
     // Colores inlineados: 8=gris, 14=cyan, 11=amarillo (evita bug hot-definition)
     _marcador(puntos, AN) {
         col_m = AN / 2 - 7
-        >>~ (1, col_m,      8) > "┤"
-        >>~ (1, col_m + 1, 14) > " ✦ PUNTOS "
-        >>~ (1, col_m + 10, 11) > puntos
-        >>~ (1, col_m + 12, 14) > " ✦ "
-        >>~ (1, col_m + 15,  8) > "├"
+        >>~ (1, col_m, 0,      8) > "┤"
+        >>~ (1, col_m + 1, 0, 14) > " ✦ PUNTOS "
+        >>~ (1, col_m + 10, 0, 11) > puntos
+        >>~ (1, col_m + 12, 0, 14) > " ✦ "
+        >>~ (1, col_m + 15, 0,  8) > "├"
     }
 
     // Menú de selección de velocidad — retorna retardo en ms (160/130/100/70/40)
@@ -83,26 +77,26 @@
         sel = 1
 
         @:sel {
-            >>~ (fila_c,    col_c, TEXTO) > "╭──────────────────────────────╮"
-            >>~ (fila_c+1,  col_c, TEXTO) > "│        Z Y M B O L           │"
-            >>~ (fila_c+2,  col_c, TEXTO) > "│      S E R P I E N T E       │"
-            >>~ (fila_c+3,  col_c, TEXTO) > "├──────────────────────────────┤"
-            >>~ (fila_c+4,  col_c, TEXTO) > "│   Elige tu velocidad:        │"
-            >>~ (fila_c+5,  col_c, TEXTO) > "│                              │"
+            >>~ (fila_c,    col_c, 0, TEXTO) > "╭──────────────────────────────╮"
+            >>~ (fila_c+1,  col_c, 0, TEXTO) > "│        Z Y M B O L           │"
+            >>~ (fila_c+2,  col_c, 0, TEXTO) > "│      S E R P I E N T E       │"
+            >>~ (fila_c+3,  col_c, 0, TEXTO) > "├──────────────────────────────┤"
+            >>~ (fila_c+4,  col_c, 0, TEXTO) > "│   Elige tu velocidad:        │"
+            >>~ (fila_c+5,  col_c, 0, TEXTO) > "│                              │"
 
             // Opciones — inline colors: 15=blanco, 10=verde (seleccionado), 9=rojo, 201=magenta
-            >>~ (fila_c+6,  col_c, 15)  > "│   [1]  Lento      160 ms     │"
-            >>~ (fila_c+7,  col_c, 15)  > "│   [2]  Normal     130 ms     │"
-            >>~ (fila_c+8,  col_c, 15)  > "│   [3]  Rápido     100 ms     │"
-            >>~ (fila_c+9,  col_c,  9)  > "│   [4]  Infernal    70 ms     │"
-            >>~ (fila_c+10, col_c, 201) > "│   [5]  Demencial   40 ms     │ "
-            >>~ (fila_c+11, col_c, TEXTO) > "╰──────────────────────────────╯"
+            >>~ (fila_c+6,  col_c, 0, 15)  > "│   [1]  Lento      160 ms     │"
+            >>~ (fila_c+7,  col_c, 0, 15)  > "│   [2]  Normal     130 ms     │"
+            >>~ (fila_c+8,  col_c, 0, 15)  > "│   [3]  Rápido     100 ms     │"
+            >>~ (fila_c+9,  col_c, 0,  9)  > "│   [4]  Infernal    70 ms     │"
+            >>~ (fila_c+10, col_c, 0, 201) > "│   [5]  Demencial   40 ms     │ "
+            >>~ (fila_c+11, col_c, 0, TEXTO) > "╰──────────────────────────────╯"
 
-            ? sel == 1 { >>~ (fila_c+6,  col_c, 10) > "│ ► [1]  Lento      160 ms     │" }
-            ? sel == 2 { >>~ (fila_c+7,  col_c, 10) > "│ ► [2]  Normal     130 ms     │" }
-            ? sel == 3 { >>~ (fila_c+8,  col_c, 10) > "│ ► [3]  Rápido     100 ms     │" }
-            ? sel == 4 { >>~ (fila_c+9,  col_c, 10) > "│ ► [4]  Infernal    70 ms     │" }
-            ? sel == 5 { >>~ (fila_c+10, col_c, 10) > "│ ► [5]  Demencial   40 ms     │" }
+            ? sel == 1 { >>~ (fila_c+6,  col_c, 0, 10) > "│ ► [1]  Lento      160 ms     │" }
+            ? sel == 2 { >>~ (fila_c+7,  col_c, 0, 10) > "│ ► [2]  Normal     130 ms     │" }
+            ? sel == 3 { >>~ (fila_c+8,  col_c, 0, 10) > "│ ► [3]  Rápido     100 ms     │" }
+            ? sel == 4 { >>~ (fila_c+9,  col_c, 0, 10) > "│ ► [4]  Infernal    70 ms     │" }
+            ? sel == 5 { >>~ (fila_c+10, col_c, 0, 10) > "│ ► [5]  Demencial   40 ms     │" }
 
             <<| tecla
             ? tecla == '1' { <~ 160 }
@@ -129,22 +123,22 @@
         fila_c = AL / 2 - 7
         col_c  = AN / 2 - 15
 
-        >>~ (fila_c,    col_c, 2)  > "╭──────────────────────────────╮"
-        >>~ (fila_c+1,  col_c, 2)  > "│         A Y U D A            │"
-        >>~ (fila_c+2,  col_c, 2)  > "├──────────────────────────────┤"
-        >>~ (fila_c+3,  col_c, 11) > "│  Movimiento:                 │"
-        >>~ (fila_c+4,  col_c, 15) > "│    W / ↑   — arriba          │"
-        >>~ (fila_c+5,  col_c, 15) > "│    S / ↓   — abajo           │"
-        >>~ (fila_c+6,  col_c, 15) > "│    A / ←   — izquierda       │"
-        >>~ (fila_c+7,  col_c, 15) > "│    D / →   — derecha         │"
-        >>~ (fila_c+8,  col_c, 11) > "│  En partida:                 │"
-        >>~ (fila_c+9,  col_c, 15) > "│    Q       — salir           │"
-        >>~ (fila_c+10, col_c, 15) > "│    P       — pausar          │"
-        >>~ (fila_c+11, col_c, 11) > "│  Al comer: la serpiente crece│"
-        >>~ (fila_c+12, col_c, 15) > "│  por la cola, la cabeza pasa │"
-        >>~ (fila_c+13, col_c, 15) > "│  a través de la fruta.       │"
-        >>~ (fila_c+14, col_c, 2)  > "╰──────────────────────────────╯"
-        >>~ (fila_c+16, col_c, 0)  > "Presiona cualquier tecla..."
+        >>~ (fila_c,    col_c, 0, 2)  > "╭──────────────────────────────╮"
+        >>~ (fila_c+1,  col_c, 0, 2)  > "│         A Y U D A            │"
+        >>~ (fila_c+2,  col_c, 0, 2)  > "├──────────────────────────────┤"
+        >>~ (fila_c+3,  col_c, 0, 11) > "│  Movimiento:                 │"
+        >>~ (fila_c+4,  col_c, 0, 15) > "│    W / ↑   — arriba          │"
+        >>~ (fila_c+5,  col_c, 0, 15) > "│    S / ↓   — abajo           │"
+        >>~ (fila_c+6,  col_c, 0, 15) > "│    A / ←   — izquierda       │"
+        >>~ (fila_c+7,  col_c, 0, 15) > "│    D / →   — derecha         │"
+        >>~ (fila_c+8,  col_c, 0, 11) > "│  En partida:                 │"
+        >>~ (fila_c+9,  col_c, 0, 15) > "│    Q       — salir           │"
+        >>~ (fila_c+10, col_c, 0, 15) > "│    P       — pausar          │"
+        >>~ (fila_c+11, col_c, 0, 11) > "│  Al comer: la serpiente crece│"
+        >>~ (fila_c+12, col_c, 0, 15) > "│  por la cola, la cabeza pasa │"
+        >>~ (fila_c+13, col_c, 0, 15) > "│  a través de la fruta.       │"
+        >>~ (fila_c+14, col_c, 0, 2)  > "╰──────────────────────────────╯"
+        >>~ (fila_c+16, col_c, 0, 0)  > "Presiona cualquier tecla..."
         <<| _tecla_cualquiera
     }
 
@@ -153,12 +147,12 @@
         fila_c = AL / 2 - 2
         col_c  = AN / 2 - 10
 
-        >>~ (fila_c,   col_c, TEXTO) > "╭───────────────────╮"
-        >>~ (fila_c+1, col_c, TEXTO) > "│                   │"
-        >>~ (fila_c+2, col_c, TEXTO) > "│    P A U S A      │"
-        >>~ (fila_c+3, col_c, TEXTO) > "│                   │"
-        >>~ (fila_c+4, col_c, TEXTO) > "│  [P]  continuar   │"
-        >>~ (fila_c+5, col_c, TEXTO) > "╰───────────────────╯"
+        >>~ (fila_c,   col_c, 0, TEXTO) > "╭───────────────────╮"
+        >>~ (fila_c+1, col_c, 0, TEXTO) > "│                   │"
+        >>~ (fila_c+2, col_c, 0, TEXTO) > "│    P A U S A      │"
+        >>~ (fila_c+3, col_c, 0, TEXTO) > "│                   │"
+        >>~ (fila_c+4, col_c, 0, TEXTO) > "│  [P]  continuar   │"
+        >>~ (fila_c+5, col_c, 0, TEXTO) > "╰───────────────────╯"
 
         @:espera {
             <<| tecla
@@ -171,13 +165,13 @@
         >>!
 
         // Bordes exterior
-        >>~ (1, 1, BORDE) > "╭" _linea_h(AN) "╮"
-        >>~ (AL + 2, 1, BORDE) > "╰" _linea_h(AN) "╯"
+        >>~ (1, 1, 0, BORDE) > "╭" _linea_h(AN) "╮"
+        >>~ (AL + 2, 1, 0, BORDE) > "╰" _linea_h(AN) "╯"
 
         fila = 2
         @ fila <= AL + 1 {
-            >>~ (fila, 1, BORDE) > "│"
-            >>~ (fila, AN + 2, BORDE) > "│"
+            >>~ (fila, 1, 0, BORDE) > "│"
+            >>~ (fila, AN + 2, 0, BORDE) > "│"
             fila++
         }
 
@@ -186,24 +180,24 @@
 
         // Comida
         [fy, fx] = comida
-        >>~ (fy, fx, COMIDA) > fruta
+        >>~ (fy, fx, 0, COMIDA) > fruta
 
         // Cabeza
         [hy, hx] = serpiente[1]
-        >>~ (hy, hx, CABEZA) > _char_cabeza(serpiente[1], serpiente[2])
+        >>~ (hy, hx, 0, CABEZA) > _char_cabeza(serpiente[1], serpiente[2])
 
         // Cuerpo (segmentos 2..lon-1)
         lon = serpiente$#
         i = 2
         @ i < lon {
             [sy, sx] = serpiente[i]
-            >>~ (sy, sx, VERDE) > _char_cuerpo(serpiente[i-1], serpiente[i], serpiente[i+1])
+            >>~ (sy, sx, 0, VERDE) > _char_cuerpo(serpiente[i-1], serpiente[i], serpiente[i+1])
             i++
         }
 
         // Cola
         [ty, tx] = serpiente[lon]
-        >>~ (ty, tx, VERDE) > _char_cola(serpiente[lon-1], serpiente[lon])
+        >>~ (ty, tx, 0, VERDE) > _char_cola(serpiente[lon-1], serpiente[lon])
     }
 
     // Renderizado delta: solo actualiza las celdas que cambiaron en el último tick
@@ -215,38 +209,38 @@
         [fvy, fvx] = comida_vieja
 
         ? comio {
-            >>~ (fvy, fvx, 0) > "  "
+            >>~ (fvy, fvx, 0, 0) > "  "
 
             // serpiente[2] = posición de la comida — marcar con "@"
             [py, px] = serpiente[2]
-            >>~ (py, px, 11) > "@"
+            >>~ (py, px, 0, 11) > "@"
 
             // serpiente[3] = vieja cabeza — redibujar como cuerpo con nuevos vecinos
             ? serpiente$# >= 4 {
                 [py3, px3] = serpiente[3]
-                >>~ (py3, px3, 10) > _char_cuerpo(serpiente[2], serpiente[3], serpiente[4])
+                >>~ (py3, px3, 0, 10) > _char_cuerpo(serpiente[2], serpiente[3], serpiente[4])
             }
 
             [fy, fx] = comida
-            >>~ (fy, fx, 11) > fruta
+            >>~ (fy, fx, 0, 11) > fruta
         }
 
         ? !comio {
             // Vieja cabeza → cuerpo
             ? serpiente$# >= 3 {
                 [py, px] = serpiente[2]
-                >>~ (py, px, 10) > _char_cuerpo(serpiente[1], serpiente[2], serpiente[3])
+                >>~ (py, px, 0, 10) > _char_cuerpo(serpiente[1], serpiente[2], serpiente[3])
             }
 
             // Borrar cola vieja (puede ser "@") y redibujar nueva cola
             [ty, tx] = cola_vieja
-            >>~ (ty, tx, 0) > " "
+            >>~ (ty, tx, 0, 0) > " "
             lon = serpiente$#
             [nty, ntx] = serpiente[lon]
-            >>~ (nty, ntx, 10) > _char_cola(serpiente[lon-1], serpiente[lon])
+            >>~ (nty, ntx, 0, 10) > _char_cola(serpiente[lon-1], serpiente[lon])
         }
 
-        >>~ (fy_cab, fx_cab, 2) > _char_cabeza(serpiente[1], serpiente[2])
+        >>~ (fy_cab, fx_cab, 0, 2) > _char_cabeza(serpiente[1], serpiente[2])
         _marcador(puntos, AN)
     }
 
@@ -266,19 +260,19 @@
 
         @:menu {
             >>!
-            >>~ (fila_c,   col_c, ROJO)  > "╭───────────────────╮"
-            >>~ (fila_c+1, col_c, ROJO)  > "│     J U E G O     │"
-            >>~ (fila_c+2, col_c, ROJO)  > "│   T E R M I N Ó   │"
-            >>~ (fila_c+3, col_c, ROJO)  > "╰───────────────────╯"
-            >>~ (fila_c+5, col_c, TEXTO) > "Puntaje final: " puntos "  "
+            >>~ (fila_c,   col_c, 0, ROJO)  > "╭───────────────────╮"
+            >>~ (fila_c+1, col_c, 0, ROJO)  > "│     J U E G O     │"
+            >>~ (fila_c+2, col_c, 0, ROJO)  > "│   T E R M I N Ó   │"
+            >>~ (fila_c+3, col_c, 0, ROJO)  > "╰───────────────────╯"
+            >>~ (fila_c+5, col_c, 0, TEXTO) > "Puntaje final: " puntos "  "
 
             // Opciones — inline colors: 10=verde (seleccionado), 15=blanco (normal)
-            >>~ (fila_c+7, col_c, 15) > "  Nuevo juego   "
-            >>~ (fila_c+8, col_c, 15) > "  Salir         "
-            >>~ (fila_c+9, col_c, 15) > "  Ayuda         "
-            ? sel == 1 { >>~ (fila_c+7, col_c, 10) > "► Nuevo juego   " }
-            ? sel == 2 { >>~ (fila_c+8, col_c, 10) > "► Salir         " }
-            ? sel == 3 { >>~ (fila_c+9, col_c, 10) > "► Ayuda         " }
+            >>~ (fila_c+7, col_c, 0, 15) > "  Nuevo juego   "
+            >>~ (fila_c+8, col_c, 0, 15) > "  Salir         "
+            >>~ (fila_c+9, col_c, 0, 15) > "  Ayuda         "
+            ? sel == 1 { >>~ (fila_c+7, col_c, 0, 10) > "► Nuevo juego   " }
+            ? sel == 2 { >>~ (fila_c+8, col_c, 0, 10) > "► Salir         " }
+            ? sel == 3 { >>~ (fila_c+9, col_c, 0, 10) > "► Ayuda         " }
 
             <<| tecla
 

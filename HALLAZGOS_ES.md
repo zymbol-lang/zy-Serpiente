@@ -17,7 +17,7 @@
 | **Descripción** | Qué falla, qué falta o qué se propone |
 | **Workaround** | Solución temporal utilizada en Serpiente |
 | **Propuesta** | Cómo debería resolverse en el lenguaje |
-| **Estado** | `abierto` · `workaround` · `propuesto` · `resuelto vX.X.X` |
+| **Estado** | `abierto` · `workaround` · `propuesto` · `resuelto vX.X.X` · `descartado` · `excluido` |
 
 ---
 
@@ -29,8 +29,9 @@ Funcionalidades que Zymbol declara soportar pero que fallan en condiciones espec
 |----|--------|----------|--------|
 | [BUG-001](#bug-001--items-de--consumen-tokens-de-líneas-siguientes) | `dibujo.zy` | `>>~` items · lexer descarta `\n` · `parse_output_items` sin límite de línea | resuelto v0.0.5 |
 | [BUG-002](#bug-002--else-escrito-como-_-produce-error-de-parser) | `dibujo.zy` | `_?` sin condición usado como else — debería ser `_` | resuelto v0.0.5 |
-| [BUG-003](#bug-003--asignación-condicional-en-loop-no-propaga-a-partir-de-la-2ª-iteración) | `serpiente.zy` | `? cond { var = expr }` en `@:label` — 2.ª iteración no actualiza `var` en scope externo | workaround |
+| [BUG-003](#bug-003--asignación-condicional-en-loop-no-propaga-a-partir-de-la-2ª-iteración) | `serpiente.zy` | `? cond { var = expr }` en `@:label` — 2.ª iteración no actualiza `var` en scope externo | resuelto (no reproducible) |
 | [BUG-004](#bug-004--mover-no-detecta-colisión-con-la-columna-derecha-del-emoji) | `logica.zy` | `mover` solo chequea la col izquierda del emoji — acceso vertical por col derecha no cuenta | resuelto |
+| [BUG-005](#bug-005--igualdad-de-tuplas-siempre-0-en-el-vm) | `logica.zy` | `==` y `<>` entre tuplas siempre devuelven `#0` en `--vm` — `cmp_direct` sin arm `Tuple` | resuelto v0.0.5 |
 
 ---
 
@@ -147,8 +148,47 @@ Funcionalidades que Zymbol declara soportar pero que fallan en condiciones espec
   ```zymbol
   [comida, fruta, semilla] = l::tick_comida(comio, serpiente, AN, AL, semilla, comida, fruta)
   ```
-- **Propuesta:** El tree-walker debe propagar asignaciones de variables del scope externo realizadas dentro de bloques `? cond { }` en todos los ticks del loop, no solo el primero. Investigar si el closure del bloque crea un scope hijo nuevo en cada iteración o reutiliza el del loop.
-- **Estado:** workaround (implementado en `logica.zy::tick_comida`)
+- **Propuesta:** N/A — el bug no se reproduce en el intérprete actual. El workaround permanece como diseño definitivo: `tick_comida` es una función pura (más testeable, sin dependencia de efectos de scope), superior al bloque condicional original.
+- **Investigación (2026-05-04):** Tres casos de prueba ejecutados (`Assignment` simple, `DestructureAssign` directo, `DestructureAssign` con `body_needs_own_scope=true`) — todos pasan. Probable resolución como efecto colateral del refactor QW7/QW16 en `if_stmt.rs` / `loops.rs`.
+- **Estado:** resuelto (no reproducible; workaround `tick_comida` permanece como diseño limpio)
+
+---
+
+### BUG-005 · Igualdad de tuplas siempre `#0` en el VM
+
+- **Módulo:** `logica.zy`
+- **Contexto:** Operadores `==` y `<>` aplicados a valores `Tuple` en el modo `--vm`.
+- **Descripción:** En el VM, cualquier comparación entre tuplas devolvía `#0` (falso) independientemente del contenido. La causa raíz estaba en dos funciones de `crates/zymbol-vm/src/lib.rs`: `cmp_direct()` (usada por la instrucción `CmpEq`) y `Value::equals()` (usada por pattern matching y `$?`). Ambas solo manejaban tipos escalares y caían en `_ => 1` (no igual) para cualquier `Value::Tuple`.
+- **Síntoma en Serpiente:** El juego funciona correctamente en modo tree-walker (`zymbol run`). Con `--vm`, la primera fruta se come visualmente (la serpiente la alcanza) pero:
+  - `comio` queda en `#0` — `tick_comida` no genera nueva comida
+  - `puntos` no se incrementa — el marcador permanece en 0
+  - La segunda fruta nunca aparece
+- **Causa raíz técnica:** `mover` evalúa `cab == comida || cab == (fr_com, fc_com + 1)`. Con `cab = (15, 20)`, `comida = (15, 19)` y `(fr_com, fc_com + 1) = (15, 20)`, la expresión debería ser `#1`. En el VM, `CmpEq` llama a `cmp_direct(Tuple([15,20]), Tuple([15,20]))` que no tiene arm para `Tuple` → devuelve `1` (no igual) → `comio = #0`.
+- **Caso mínimo:**
+  ```zymbol
+  a = (1, 2)
+  b = (1, 2)
+  >> (a == b) ¶   // TW: #1 — VM (bug): #0
+  ```
+- **Diagnóstico:** Descubierto probando `zymbol run --vm serpiente.zy` en terminal real. El TW pasaba 425/425 tests pero el VM no tenía cobertura de igualdad de tuplas.
+- **Fix:** En `crates/zymbol-vm/src/lib.rs`, añadido arm recursivo en ambas funciones:
+  ```rust
+  // cmp_direct()
+  (Value::Tuple(x), Value::Tuple(y)) => {
+      if x.len() != y.len() { return 1; }
+      for (a, b) in x.iter().zip(y.iter()) {
+          let r = cmp_direct(a, b);
+          if r != 0 { return r; }
+      }
+      0
+  }
+  // Value::equals()
+  (Value::Tuple(a), Value::Tuple(b)) => {
+      a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| x.equals(y))
+  }
+  ```
+- **Test de regresión:** `interpreter/tests/bugs/bug_vm_tuple_equality.zy` — cubre igualdad literal, variables, aritmética en slots, condición `||` compuesta, tuplas anidadas.
+- **Estado:** resuelto v0.0.5
 
 ---
 
@@ -158,12 +198,12 @@ Construcciones o comportamientos que se necesitan para completar Serpiente pero 
 
 | ID | Módulo | Capacidad ausente | Estado |
 |----|--------|-------------------|--------|
-| [GAP-001](#gap-001--sin-operador-de-repetición-de-string) | `dibujo.zy` | Operador `"═" $* n` — repetir string N veces | abierto |
-| [GAP-002](#gap-002--sin-número-aleatorio-nativo) | `logica.zy` | Número aleatorio nativo — `$RANDOM` requiere BashExec | abierto |
-| [GAP-003](#gap-003--tuiblock-no-garantiza-cleanup-al-usar-label-en-vm) | `serpiente.zy` | `@:label!` dentro de `>>|` no ejecuta `ExitTui` en el VM | abierto |
-| [GAP-004](#gap-004--sin-detección-de-resize-del-terminal) | `serpiente.zy` | Dimensiones fijas — `>>?` no se consulta en el game loop | abierto |
-| [GAP-005](#gap-005--sin-soporte-de-estilos-de-texto-en-) | `dibujo.zy` | `>>~` no soporta negrita, cursiva ni subrayado — solo color fg/bg | abierto |
-| [GAP-006](#gap-006--lsp-no-reconoce--como-definición-de-variable) | `dibujo.zy` | El LSP reporta `tecla` como "undefined" tras `<<| tecla` — falso positivo | abierto |
+| [GAP-001](#gap-001--sin-operador-de-repetición-de-string) | `dibujo.zy` | Operador `"═" $* n` — repetir string N veces | resuelto |
+| [GAP-002](#gap-002--sin-número-aleatorio-nativo) | `logica.zy` | Número aleatorio nativo — `$RANDOM` requiere BashExec | descartado |
+| [GAP-003](#gap-003--tuiblock-no-garantiza-cleanup-al-usar-label-en-vm) | `serpiente.zy` | `@:label!` dentro de `>>|` no ejecuta `ExitTui` en el VM | resuelto |
+| [GAP-004](#gap-004--sin-detección-de-resize-del-terminal) | `serpiente.zy` | Dimensiones fijas — `>>?` no se consulta en el game loop | excluido |
+| [GAP-005](#gap-005--sin-soporte-de-estilos-de-texto-en-) | `dibujo.zy` | `>>~` no soporta negrita, cursiva ni subrayado — solo color fg/bg | resuelto v0.0.5 |
+| [GAP-006](#gap-006--lsp-no-reconoce--como-definición-de-variable) | `dibujo.zy` | El LSP reporta `tecla` como "undefined" tras `<<| tecla` — falso positivo | resuelto v0.0.5 |
 
 ---
 
@@ -189,7 +229,7 @@ Construcciones o comportamientos que se necesitan para completar Serpiente pero 
   linea = "─" $* AN
   >>~ (1, 1, BORDE) > "╭" linea "╮"
   ```
-- **Estado:** abierto
+- **Estado:** resuelto — implementado en lexer (`DollarStar`), parser (`parse_string_repeat`), intérprete (`eval_string_repeat`), VM (`StrRepeat`), compilador, formatter y análisis semántico. Workaround `_linea_h` eliminado en `dibujo.zy`.
 
 ---
 
@@ -214,7 +254,7 @@ Construcciones o comportamientos que se necesitan para completar Serpiente pero 
   ```zymbol
   fc = rand(2, AN)    // entero aleatorio en [2, AN]
   ```
-- **Estado:** abierto
+- **Estado:** descartado — decisión de diseño: Zymbol no añade funciones que no sean primitivas del lenguaje. El workaround LCG en `logica.zy` es la solución definitiva.
 
 ---
 
@@ -225,77 +265,36 @@ Construcciones o comportamientos que se necesitan para completar Serpiente pero 
 - **Descripción:** En el tree-walker, el cleanup de `>>|` está implementado como un guard Rust con `Drop` — el terminal se restaura independientemente de cómo se salga del bloque (normal, `@!`, error). En el VM, `ExitTui` es una instrucción bytecode emitida al final del bloque; si `@:label!` interrumpe la ejecución antes de llegar a ella, el terminal queda en raw mode con el alternate screen activo.
 - **Impacto en Serpiente:** El game loop usa `@:game!` dentro de `>>|`. En el tree-walker (modo por defecto) funciona correctamente. En el VM (`--vm`) el terminal puede quedar roto tras salir.
 - **Workaround:** Usar el tree-walker (modo por defecto). No restructurar el loop evitando `@:label!`.
-- **Propuesta:** El VM debe instalar el mismo guard Rust con `Drop` que usa el tree-walker al ejecutar `EnterTui`, de modo que `ExitTui` se garantice en cualquier ruta de salida. Deuda técnica documentada en `crates/zymbol-vm/src/lib.rs` con comentario `// TODO: TuiBlock cleanup on break`.
-- **Estado:** abierto
+- **Fix:** Struct `TuiGuard` con `Drop` en `crates/zymbol-vm/src/lib.rs`. `run()` mantiene `tui_stack: Vec<TuiGuard>` — `EnterTui` hace `push`, `ExitTui` hace `pop` (el `Drop` ejecuta el cleanup). Si `ExitTui` no se alcanza (error, break externo), el Vec se destruye al salir de `run()` y el `Drop` restaura el terminal igualmente.
+- **Estado:** resuelto
 
 ---
 
 ### GAP-004 · Sin detección de resize del terminal
 
 - **Módulo:** `serpiente.zy`
-- **Capacidad ausente:** Detección de cambio de tamaño de terminal durante la partida. `>>?` se consulta al arrancar y el tablero se adapta al tamaño real en ese momento, pero no se vuelve a consultar en cada tick del game loop.
-- **Descripción:** Un Snake de producción consultaría `>>?` en cada iteración para detectar resize de ventana (tiling WM, pantalla completa ↔ ventana) y redibujar el tablero adaptado. La API ya soporta esto — el gap es de diseño en Serpiente, no del lenguaje.
-- **Estado actual:** Las dimensiones se fijan al inicio via `[filas, cols] = >>?` — correcto para el tamaño inicial, pero si el usuario redimensiona la terminal durante la partida el tablero queda desalineado.
-- **Propuesta de diseño:**
-  ```zymbol
-  @:game {
-      <<|? tecla
-      [filas, cols] = >>?
-      ? filas <> ult_filas || cols <> ult_cols {
-          AL = filas - 2
-          AN = cols  - 2
-          ult_filas = filas
-          ult_cols  = cols
-      }
-      // ... resto del loop
-  }
-  ```
-- **Estado:** abierto
+- **Clasificación original:** GAP — pero incorrecta. El lenguaje ya provee `>>?` para consultar el tamaño del terminal en cualquier momento. La API es completa.
+- **Diagnóstico:** No había ninguna capacidad ausente en Zymbol — la detección de resize era una decisión de diseño pendiente en el juego, no una limitación del lenguaje.
+- **Decisión:** Excluido de los GAPs del lenguaje. El comportamiento se implementó en `serpiente.zy` como mejora de diseño del juego: `>>?` en cada tick de `@:game`, con `@:main>` para reiniciar la partida centrada al detectar cambio de dimensiones.
+- **Estado:** excluido — no es un GAP del lenguaje
 
 ---
 
 ### GAP-005 · Sin soporte de estilos de texto en `>>~`
 
 - **Módulo:** `dibujo.zy`
-- **Capacidad ausente:** Aplicar atributos de texto ANSI — **negrita**, *cursiva* y subrayado — en la salida posicionada `>>~`. Actualmente la tupla de posición solo acepta color `(fila, col, fg, bg)`.
-- **Caso de uso en Serpiente:** El título "GAME OVER", el marcador de puntos, las opciones del menú y los encabezados de ayuda serían más legibles y expresivos en negrita o subrayado. Hoy solo se puede cambiar el color.
-- **Motivación concreta:**
-  ```zymbol
-  // Deseado — negrita en el puntaje final
-  >>~ (fila_c+5, col_c, TEXTO, negrita) > "Puntaje final: " puntos
-  // Deseado — subrayado en la opción seleccionada del menú
-  >>~ (fila_c+7, col_c, VERDE, subrayado) > "► Nuevo juego"
-  ```
-- **Limitación actual:** Para lograr negrita/subrayado hay que inyectar secuencias ANSI crudas dentro de un string — frágil, no portable y rompe la abstracción del lenguaje:
-  ```zymbol
-  // Workaround horrible — secuencia ANSI hardcodeada
-  >>~ (fila_c+5, col_c, TEXTO) > "\e[1mPuntaje final: " puntos "\e[0m"
-  ```
-- **Propuesta A — atributos en la tupla de posición:**
-  Extender la tupla a `(fila, col, fg, bg, estilo)` donde `estilo` es una máscara de bits (o constante simbólica):
-  ```zymbol
-  NEGRITA    := 1
-  CURSIVA    := 2
-  SUBRAYADO  := 4
-
-  >>~ (fila, col, VERDE, 0, NEGRITA) > "► Nuevo juego"
-  >>~ (fila, col, ROJO,  0, NEGRITA | SUBRAYADO) > "GAME OVER"
-  ```
-- **Propuesta B — módulo `std/ansi` con constantes de estilo:**
-  Igual que IDEA-001 pero extendido a estilos. Las constantes de fg, bg y estilo se importan del mismo módulo:
-  ```zymbol
-  <# std/ansi <= ansi
-
-  >>~ (fila, col, ansi.VERDE, 0, ansi.NEGRITA) > "► Nuevo juego"
-  ```
-- **Propuesta C — operadores de formato de string (más ambicioso):**
-  Nuevos operadores de estilo que envuelven un valor en las secuencias ANSI correctas, sin tocar la sintaxis de `>>~`:
-  ```zymbol
-  >>~ (fila, col, VERDE) > $bold("► Nuevo juego")
-  >>~ (fila, col, ROJO)  > $bold($underline("GAME OVER"))
-  ```
-- **Impacto estimado:** Mejora visual significativa para cualquier TUI en Zymbol. La Propuesta A es la de menor complejidad de implementación (solo ampliar el parser de la tupla y el runtime de `>>~`/`PrintAt`).
-- **Estado:** abierto
+- **Capacidad ausente:** Aplicar atributos de texto ANSI — **negrita**, *cursiva* y subrayado — en la salida posicionada `>>~`.
+- **Caso de uso en Serpiente:** Títulos, marcador y opciones de menú con negrita/subrayado para mayor legibilidad.
+- **Diseño resuelto:** Rediseño completo de la tupla de `>>~`. Nuevo orden: `(fila, col, BKS, fg, bg)` — 5 slots donde el slot BKS (posición 3) es una máscara de bits de atributos (1=Bold, 2=Italic, 4=Underline). Sintaxis sparse con comas como marcadores de posición: `>>~(,,,15,0)>` (sin mover cursor, fg=15, bg=0).
+- **Breaking change:** El tercer slot pasó de ser `fg` a ser `BKS`. Todas las llamadas en `dibujo.zy` migradas de `>>~(fila, col, fg)` a `>>~(fila, col, 0, fg)`.
+- **Implementación:**
+  - AST: `OutputPos.pos: Box<Expr>` → `OutputPos.slots: Vec<Option<Expr>>`
+  - Parser: `parse_sparse_pos_tuple()` — slots vacíos = `None`, máximo 5 slots
+  - Intérprete: `execute_output_pos()` con `Option<i64>` por slot; presencia del slot (no valor cero) determina si se aplica; `Attribute::Reset` (ESC[0m) al final si se aplicó algo
+  - VM: `vm_extract_pos()` retorna `(Option<u16>, Option<u16>, i64, Option<i64>, Option<i64>)`; `PrintAt` actualizado con BKS y reset
+  - Compilador: emite `LoadUnit` para slots `None`, `MakeTuple` con los 5 registros
+  - `dibujo.zy`: transformación masiva `(fila, col, fg)` → `(fila, col, 0, fg)` en todas las llamadas
+- **Estado:** resuelto v0.0.5
 
 ---
 
@@ -325,7 +324,8 @@ Construcciones o comportamientos que se necesitan para completar Serpiente pero 
   }
   ```
   Mismo ajuste en `zymbol-analyzer` para que el hover y el completion también reconozcan la variable.
-- **Estado:** abierto
+- **Fix:** En `zymbol-semantic/src/type_check.rs`, añadido `Statement::KeyInput(ki)` en dos lugares: en `check_statement()` (define la variable como `ZymbolType::Char` al llegar a la sentencia) y en `define_local_vars_from_block()` (pre-declara la variable durante inferencia de firma de función). La causa raíz era que `KeyInput` caía en el `_ => {}` del type checker sin registrar la variable en el scope de resolución.
+- **Estado:** resuelto v0.0.5
 
 ---
 
@@ -374,13 +374,13 @@ Mejoras al lenguaje Zymbol inspiradas directamente en la experiencia de construi
 
 ## Resumen de estado
 
-| Categoría | Total | Abiertos | Con workaround | Propuestos | Resueltos | Descartados |
-|-----------|-------|----------|----------------|------------|-----------|-------------|
-| BUG | 4 | 0 | 1 | 0 | 3 | 0 |
-| GAP | 6 | 6 | 0 | 0 | 0 | 0 |
-| ERROR | 0 | 0 | 0 | 0 | 0 | 0 |
-| IDEA | 1 | 0 | 0 | 1 | 0 | 0 |
-| **Total** | **11** | **6** | **1** | **1** | **3** | **0** |
+| Categoría | Total | Abiertos | Con workaround | Propuestos | Resueltos | Descartados | Excluidos |
+|-----------|-------|----------|----------------|------------|-----------|-------------|-----------|
+| BUG | 5 | 0 | 0 | 0 | 5 | 0 | 0 |
+| GAP | 6 | 0 | 0 | 0 | 4 | 1 | 1 |
+| ERROR | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| IDEA | 1 | 0 | 0 | 1 | 0 | 0 | 0 |
+| **Total** | **12** | **2** | **0** | **1** | **9** | **1** | **1** |
 
 ---
 
@@ -391,7 +391,12 @@ Entradas movidas aquí cuando pasan a estado `resuelto`.
 | ID | Título | Resuelto en | Cómo |
 |----|--------|-------------|------|
 | BUG-001 | Items de `>>~` consumen tokens de líneas siguientes | v0.0.5 | `parse_output_items_same_line(line)` en `io.rs`: para si `peek().span.start.line != line`. `parse_output_item_postfix` en `expressions.rs`: check de línea al inicio del loop para no cruzar `\n`. |
-| BUG-002 | Else escrito como `_?` produce error de parser | v0.0.5 | Uso de `_` en lugar de `_?` para else sin condición. El diagnóstico del parser no se mejoró — pendiente como mejora de UX. |
+| BUG-002 | Else escrito como `_?` produce error de parser | v0.0.5 | Uso de `_` en lugar de `_?` para else sin condición. Diagnóstico mejorado en `if_stmt.rs`: guard `LBrace` tras `_?` emite `"'_?' requires a condition"` con `help: use '_' (without '?') for an unconditional else branch`. |
+| GAP-001 | Sin operador de repetición de string | v0.0.5 | Operador `$*` implementado en lexer (`DollarStar`), parser (`parse_string_repeat`), intérprete (`eval_string_repeat`), VM (`StrRepeat`), compilador, formatter y análisis semántico. Workaround `_linea_h` eliminado. |
+| GAP-003 | TuiBlock no garantiza cleanup al usar `@:label!` en el VM | v0.0.5 | `struct TuiGuard` con `Drop` en `zymbol-vm/src/lib.rs`. `run()` mantiene `tui_stack: Vec<TuiGuard>` — `EnterTui` push, `ExitTui` pop. Cleanup garantizado en cualquier ruta de salida. |
+| GAP-005 | Sin soporte de estilos de texto en `>>~` | v0.0.5 | Nuevo orden de slots `(fila, col, BKS, fg, bg)` + sintaxis sparse `>>~(,,,fg,bg)>`. BKS = bitmask 1=Bold/2=Italic/4=Underline. Slot ausente = `None` = no tocar ese parámetro. `Attribute::Reset` al finalizar. `dibujo.zy` migrado de 3 → 4 args en todas las llamadas. |
+| GAP-006 | LSP no reconoce `<<|` como definición de variable | v0.0.5 | En `type_check.rs`: `Statement::KeyInput` añadido en `check_statement()` y `define_local_vars_from_block()`. La variable se registra como `ZymbolType::Char` — el mismo tipo que produce `<<|` en runtime. |
+| BUG-005 | Igualdad de tuplas siempre `#0` en el VM | v0.0.5 | En `zymbol-vm/src/lib.rs`: arm `(Tuple, Tuple)` añadido a `cmp_direct()` (comparación lexicográfica recursiva) y a `Value::equals()` (igualdad elemento a elemento). Descubierto probando `zymbol run --vm serpiente.zy` — el marcador de puntos no incrementaba al comer la primera fruta. |
 
 ---
 
@@ -401,4 +406,5 @@ Entradas movidas aquí cuando la propuesta se evalúa y se decide no implementar
 
 | ID | Título | Decisión | Razón |
 |----|--------|----------|-------|
-| — | — | — | — |
+| GAP-002 | Sin número aleatorio nativo | descartado | Decisión de diseño: Zymbol no añade funciones que no sean primitivas del lenguaje. LCG en `logica.zy` es la solución definitiva. |
+| GAP-004 | Sin detección de resize del terminal | excluido | No era un GAP del lenguaje — `>>?` ya soporta consulta de tamaño en cualquier momento. Era una decisión de diseño pendiente en el juego, implementada en `serpiente.zy`. |

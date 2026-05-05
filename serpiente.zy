@@ -12,6 +12,8 @@ AL = filas - 2
 
 fila_c = AL / 2 + 1
 col_c  = AN / 2 + 1
+ult_filas = filas
+ult_cols  = cols
 
 // Semilla LCG desde tres fuentes de entropía independientes — sh puro, sin bash
 _ns  = <\ "date +%N" \>
@@ -34,6 +36,18 @@ semilla = (#|_ns| + #|_pid| * 31337 + #|_rnd| * 65537) % 2147483647
 
         @:game {
             <<|? tecla
+
+            // Detectar resize — reiniciar partida centrada en el nuevo tamaño
+            [filas_act, cols_act] = >>?
+            ? filas_act <> ult_filas || cols_act <> ult_cols {
+                AN = cols_act - 2
+                AL = filas_act - 2
+                fila_c = AL / 2 + 1
+                col_c  = AN / 2 + 1
+                ult_filas = filas_act
+                ult_cols  = cols_act
+                @:main>
+            }
 
             ? tecla == 'q' || tecla == 'Q' { @:game! }
 
