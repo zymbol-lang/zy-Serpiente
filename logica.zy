@@ -82,9 +82,10 @@
     }
 
     // Avanza la serpiente un paso
+    // crecer=#1 → hay crecimiento diferido del tick anterior (cola se queda)
     // Retorna (vivo, serpiente, puntos, comio)
-    // vivo=#0 → colisión; comio=#1 → comida ingerida (el llamador genera nueva comida)
-    mover(serpiente, dir, comida, puntos, AN, AL) {
+    // vivo=#0 → colisión; comio=#1 → comida ingerida (crecimiento se difiere al siguiente tick)
+    mover(serpiente, dir, comida, puntos, AN, AL, crecer) {
         [fr_cab, fc_cab] = serpiente[1]
 
         nf = fr_cab
@@ -98,45 +99,36 @@
 
         // Colisión con pared
         ? nf < 2 || nf > AL+1 || nc < 2 || nc > AN+1 {
-            <~ (#0, serpiente, puntos, #0, (0, 0))
+            <~ (#0, serpiente, puntos, #0)
         }
 
-        // Auto-colisión (la cola vacía este tick, excluirla)
+        // Detectar si se come la fruta (emoji ancho: col izquierda o derecha cuentan)
+        [fr_com, fc_com] = comida
+        comio = cab == comida || cab == (fr_com, fc_com + 1)
+
+        // Auto-colisión:
+        // crecer=#1: la cola se queda este tick → incluir todos los segmentos
+        // crecer=#0: la cola sale este tick → excluir último segmento del chequeo
         lon = serpiente$#
+        limite = lon - 1
+        ? crecer { limite = lon }
         i = 1
-        @ i < lon {
-            ? serpiente[i] == cab { <~ (#0, serpiente, puntos, #0, (0, 0)) }
+        @ i <= limite {
+            ? serpiente[i] == cab { <~ (#0, serpiente, puntos, #0) }
             i++
         }
 
-        // Comida ingerida — emoji ocupa 2 cols: col izquierda O derecha cuenta
-        // cab es la posición exacta donde tocó (puede ser col izquierda o derecha del emoji)
-        [fr_com, fc_com] = comida
-        ? cab == comida || cab == (fr_com, fc_com + 1) {
-            // Pasar a través: cabeza avanza un paso más allá de la comida
-            // Si el siguiente paso choca con pared, cabeza queda en la comida
-            nf_sig = nf
-            nc_sig = nc
-            ? dir == '↑' { nf_sig = nf - 1 }
-            ? dir == '↓' { nf_sig = nf + 1 }
-            ? dir == '←' { nc_sig = nc - 1 }
-            ? dir == '→' { nc_sig = nc + 1 }
-            ? nf_sig < 2 || nf_sig > AL+1 || nc_sig < 2 || nc_sig > AN+1 {
-                serpiente = serpiente$+[1] cab
-                puntos = puntos + 1
-                <~ (#1, serpiente, puntos, #1, cab)
-            }
-            // Insertar cab como segmento 2 — queda entre la cabeza y el cuerpo
-            // La cola de la serpiente borrará naturalmente el "@" cuando llegue a cab
-            serpiente = serpiente$+[1] cab
-            serpiente = serpiente$+[1] (nf_sig, nc_sig)
-            puntos = puntos + 1
-            <~ (#1, serpiente, puntos, #1, cab)
+        // Nueva cabeza al frente
+        serpiente = serpiente$+[1] cab
+
+        ? comio { puntos = puntos + 1 }
+
+        // crecer=#1: cola se queda (crecimiento diferido del tick anterior)
+        // crecer=#0: cola sale (movimiento normal; si comio, el crecimiento se difiere)
+        ? !crecer {
+            serpiente = serpiente$-[-1]
         }
 
-        // Movimiento normal: añadir nueva cabeza, eliminar cola
-        serpiente = serpiente$+[1] cab
-        serpiente = serpiente$-[-1]
-        <~ (#1, serpiente, puntos, #0, (0, 0))
+        <~ (#1, serpiente, puntos, comio)
     }
 }

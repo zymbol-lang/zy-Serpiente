@@ -135,8 +135,8 @@
         >>~ (fila_c+9,  col_c, 0, 15) > "│    Q       — salir           │"
         >>~ (fila_c+10, col_c, 0, 15) > "│    P       — pausar          │"
         >>~ (fila_c+11, col_c, 0, 11) > "│  Al comer: la serpiente crece│"
-        >>~ (fila_c+12, col_c, 0, 15) > "│  por la cola, la cabeza pasa │"
-        >>~ (fila_c+13, col_c, 0, 15) > "│  a través de la fruta.       │"
+        >>~ (fila_c+12, col_c, 0, 15) > "│  por la cola en el siguiente │"
+        >>~ (fila_c+13, col_c, 0, 15) > "│  tick de reloj.              │"
         >>~ (fila_c+14, col_c, 0, 2)  > "╰──────────────────────────────╯"
         >>~ (fila_c+16, col_c, 0, 0)  > "Presiona cualquier tecla..."
         <<| _tecla_cualquiera
@@ -201,38 +201,42 @@
     }
 
     // Renderizado delta: solo actualiza las celdas que cambiaron en el último tick
-    // Al comer: serpiente[2]=posición comida → dibuja "@"; serpiente[3]=vieja cabeza → cuerpo
-    // El "@" desaparece naturalmente cuando la cola alcanza esa posición (limpieza normal)
+    // comio:  fruta desaparece, movimiento normal de cola, sin @ todavía
+    // crecer: @ aparece en pos_arroba (panza), cola se queda en su lugar
+    // normal: vieja cabeza → cuerpo, cola se elimina y redibuja
     // Colores inlineados: 2=cabeza, 10=cuerpo, 11=comida (evita bug hot-definition)
-    dibujar(serpiente, cola_vieja, comio, comida_vieja, comida, fruta, puntos, AN, AL) {
+    dibujar(serpiente, cola_vieja, crecer, comio, comida_vieja, comida, fruta, puntos, AN, AL, pos_arroba) {
         [fy_cab, fx_cab] = serpiente[1]
-        [fvy, fvx] = comida_vieja
 
         ? comio {
+            // Tick de comer: fruta desaparece, movimiento normal (cola sale), nueva comida aparece
+            [fvy, fvx] = comida_vieja
             >>~ (fvy, fvx, 0, 0) > "  "
-
-            // serpiente[2] = posición de la comida — marcar con "@"
-            [py, px] = serpiente[2]
-            >>~ (py, px, 0, 11) > "@"
-
-            // serpiente[3] = vieja cabeza — redibujar como cuerpo con nuevos vecinos
-            ? serpiente$# >= 4 {
-                [py3, px3] = serpiente[3]
-                >>~ (py3, px3, 0, 10) > _char_cuerpo(serpiente[2], serpiente[3], serpiente[4])
+            ? serpiente$# >= 3 {
+                [py2, px2] = serpiente[2]
+                >>~ (py2, px2, 0, 10) > _char_cuerpo(serpiente[1], serpiente[2], serpiente[3])
             }
-
+            [ty, tx] = cola_vieja
+            >>~ (ty, tx, 0, 0) > " "
+            lon = serpiente$#
+            [nty, ntx] = serpiente[lon]
+            >>~ (nty, ntx, 0, 10) > _char_cola(serpiente[lon-1], serpiente[lon])
             [fy, fx] = comida
             >>~ (fy, fx, 0, 11) > fruta
         }
 
-        ? !comio {
-            // Vieja cabeza → cuerpo
-            ? serpiente$# >= 3 {
-                [py, px] = serpiente[2]
-                >>~ (py, px, 0, 10) > _char_cuerpo(serpiente[1], serpiente[2], serpiente[3])
-            }
+        ? crecer {
+            // Tick de crecimiento: @ en la panza donde estaba la fruta, cola se queda
+            [ay, ax] = pos_arroba
+            >>~ (ay, ax, 0, 11) > "@"
+        }
 
-            // Borrar cola vieja (puede ser "@") y redibujar nueva cola
+        ? !comio && !crecer {
+            // Tick normal: vieja cabeza → cuerpo, cola sale y se redibuja
+            ? serpiente$# >= 3 {
+                [py2, px2] = serpiente[2]
+                >>~ (py2, px2, 0, 10) > _char_cuerpo(serpiente[1], serpiente[2], serpiente[3])
+            }
             [ty, tx] = cola_vieja
             >>~ (ty, tx, 0, 0) > " "
             lon = serpiente$#

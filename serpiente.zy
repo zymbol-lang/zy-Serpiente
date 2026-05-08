@@ -2,8 +2,8 @@
 // Controles: WASD o flechas — Q para salir — P para pausar
 // Ejecutar: zymbol run serpiente.zy
 
-<# ./logica <= l
-<# ./dibujo <= d
+<# ./logica : l
+<# ./dibujo : d
 
 // Consultar tamaño real de la terminal y derivar dimensiones internas del tablero
 [filas, cols] = >>?
@@ -26,8 +26,9 @@ semilla = (#|_ns| + #|_pid| * 31337 + #|_rnd| * 65537) % 2147483647
 
     @:main {
         serpiente = [(fila_c, col_c), (fila_c, col_c-1), (fila_c, col_c-2)]
-        dir    = '→'
-        puntos = 0
+        dir      = '→'
+        puntos   = 0
+        pendiente = #0  // posición de fruta pendiente de mostrar como @, o #0
 
         [comida, semilla] = l::nueva_comida(serpiente, AN, AL, semilla)
         [fruta,  semilla] = l::fruta_aleatoria(semilla)
@@ -63,13 +64,21 @@ semilla = (#|_ns| + #|_pid| * 31337 + #|_rnd| * 65537) % 2147483647
             cola_vieja   = serpiente[serpiente$#]
             comida_vieja = comida
 
-            [vivo, serpiente, puntos, comio, _cab] = l::mover(serpiente, dir, comida, puntos, AN, AL)
+            // crecer=#1: hay crecimiento diferido del tick anterior (cola se queda)
+            crecer = pendiente <> #0
+
+            [vivo, serpiente, puntos, comio] = l::mover(serpiente, dir, comida, puntos, AN, AL, crecer)
 
             [comida, fruta, semilla] = l::tick_comida(comio, serpiente, AN, AL, semilla, comida, fruta)
 
+            // pos_arroba: dónde dibujar @ este tick (posición de fruta del tick anterior)
+            pos_arroba = pendiente
+            ? crecer { pendiente = #0 }
+            ? comio  { pendiente = serpiente[1] }
+
             ? !vivo { @:game! }
 
-            d::dibujar(serpiente, cola_vieja, comio, comida_vieja, comida, fruta, puntos, AN, AL)
+            d::dibujar(serpiente, cola_vieja, crecer, comio, comida_vieja, comida, fruta, puntos, AN, AL, pos_arroba)
             @~ retardo
         }
 
