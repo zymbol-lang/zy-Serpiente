@@ -82,7 +82,11 @@ semilla = (#|_ns| + #|_pid| * 31337 + #|_rnd| * 65537) % 2147483647
             @~ retardo
         }
 
-        accion = d::fin_juego(puntos, AN, AL)
+        // Estadísticas de sesión: ° auto-inicializa sin pre-declaración
+        °partidas += 1
+        marcadores = °marcadores$+ puntos
+
+        accion = d::fin_juego(puntos, partidas, marcadores, AN, AL)
         ? accion == 's' { @:main! }
     }
 }

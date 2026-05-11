@@ -59,7 +59,6 @@
 
     // Dibuja el marcador de puntos centrado sobre el borde superior (fila 1)
     // Superpone "╣ ✦ PUNTOS N ✦ ╠" sobre los "═" del borde
-    // Colores inlineados: 8=gris, 14=cyan, 11=amarillo (evita bug hot-definition)
     _marcador(puntos, AN) {
         col_m = AN / 2 - 7
         >>~ (1, col_m, 0,      8) > "┤"
@@ -117,7 +116,6 @@
     }
 
     // Pantalla de ayuda — controles e instrucciones — espera cualquier tecla y retorna
-    // Colores inlineados: 2=verde oscuro, 15=blanco, 11=amarillo (evita bug hot-definition)
     _ayuda(AN, AL) {
         >>!
         fila_c = AL / 2 - 7
@@ -204,7 +202,6 @@
     // comio:  fruta desaparece, movimiento normal de cola, sin @ todavía
     // crecer: @ aparece en pos_arroba (panza), cola se queda en su lugar
     // normal: vieja cabeza → cuerpo, cola se elimina y redibuja
-    // Colores inlineados: 2=cabeza, 10=cuerpo, 11=comida (evita bug hot-definition)
     dibujar(serpiente, cola_vieja, crecer, comio, comida_vieja, comida, fruta, puntos, AN, AL, pos_arroba) {
         [fy_cab, fx_cab] = serpiente[1]
 
@@ -256,9 +253,15 @@
     }
 
     // Pantalla de fin de juego — selector con ↑↓ y ↵ para confirmar (N/S/A también funcionan)
-    // Retorna 'n' (nueva partida) o 's' (salir)
-    fin_juego(puntos, AN, AL) {
-        fila_c = AL / 2 - 4
+    // partidas y marcadores acumulados con ° en serpiente.zy — retorna 'n' o 's'
+    fin_juego(puntos, partidas, marcadores, AN, AL) {
+        // Deriva el record del historial de puntajes de la sesión
+        record = 0
+        @ i:1..marcadores$# {
+            ? marcadores[i] > record { record = marcadores[i] }
+        }
+
+        fila_c = AL / 2 - 5
         col_c  = AN / 2 - 10
         sel = 1
 
@@ -268,15 +271,16 @@
             >>~ (fila_c+1, col_c, 0, ROJO)  > "│     J U E G O     │"
             >>~ (fila_c+2, col_c, 0, ROJO)  > "│   T E R M I N Ó   │"
             >>~ (fila_c+3, col_c, 0, ROJO)  > "╰───────────────────╯"
-            >>~ (fila_c+5, col_c, 0, TEXTO) > "Puntaje final: " puntos "  "
+            >>~ (fila_c+5, col_c, 0, TEXTO) > "Puntaje: " puntos "   Record: " record "  "
+            >>~ (fila_c+6, col_c, 0, TEXTO) > "Partida " partidas " de la sesión     "
 
             // Opciones — inline colors: 10=verde (seleccionado), 15=blanco (normal)
-            >>~ (fila_c+7, col_c, 0, 15) > "  Nuevo juego   "
-            >>~ (fila_c+8, col_c, 0, 15) > "  Salir         "
-            >>~ (fila_c+9, col_c, 0, 15) > "  Ayuda         "
-            ? sel == 1 { >>~ (fila_c+7, col_c, 0, 10) > "► Nuevo juego   " }
-            ? sel == 2 { >>~ (fila_c+8, col_c, 0, 10) > "► Salir         " }
-            ? sel == 3 { >>~ (fila_c+9, col_c, 0, 10) > "► Ayuda         " }
+            >>~ (fila_c+8,  col_c, 0, 15) > "  Nuevo juego   "
+            >>~ (fila_c+9,  col_c, 0, 15) > "  Salir         "
+            >>~ (fila_c+10, col_c, 0, 15) > "  Ayuda         "
+            ? sel == 1 { >>~ (fila_c+8,  col_c, 0, 10) > "► Nuevo juego   " }
+            ? sel == 2 { >>~ (fila_c+9,  col_c, 0, 10) > "► Salir         " }
+            ? sel == 3 { >>~ (fila_c+10, col_c, 0, 10) > "► Ayuda         " }
 
             <<| tecla
 
