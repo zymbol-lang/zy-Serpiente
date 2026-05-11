@@ -5,6 +5,10 @@ Snake clásico corriendo en la terminal, escrito completamente en Zymbol.
 Serpiente fue el primer programa TUI real en el lenguaje — sirvió como prueba de fuego
 de las primitivas de terminal introducidas en **Zymbol v0.0.5**.
 
+> **Proyecto de validación de Zymbol v0.0.5** *(actualmente en desarrollo)* — construido
+> para poner a prueba las primitivas TUI, la VM de registros, las variables hot-definition
+> y el nuevo pipeline de empaquetado standalone introducidos en este milestone.
+
 > **English:** [README.md](README.md)
 
 ---
