@@ -380,7 +380,7 @@ Mejoras al lenguaje Zymbol inspiradas directamente en la experiencia de construi
 | GAP | 6 | 0 | 0 | 0 | 4 | 1 | 1 |
 | ERROR | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | IDEA | 1 | 0 | 0 | 1 | 0 | 0 | 0 |
-| **Total** | **12** | **2** | **0** | **1** | **9** | **1** | **1** |
+| **Total** | **12** | **0** | **0** | **1** | **9** | **1** | **1** |
 
 ---
 

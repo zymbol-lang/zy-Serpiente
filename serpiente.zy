@@ -2,8 +2,8 @@
 // Controles: WASD o flechas — Q para salir — P para pausar
 // Ejecutar: zymbol run serpiente.zy
 
-<# ./logica : l
-<# ./dibujo : d
+<# ./logica => l
+<# ./dibujo => d
 
 // Consultar tamaño real de la terminal y derivar dimensiones internas del tablero
 [filas, cols] = >>?

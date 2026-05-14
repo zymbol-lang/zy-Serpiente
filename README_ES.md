@@ -1,5 +1,7 @@
 # Serpiente
 
+> **Revisado para v0.0.5 — 2026-05-12**
+
 Snake clásico corriendo en la terminal, escrito completamente en Zymbol.
 
 Serpiente fue el primer programa TUI real en el lenguaje — sirvió como prueba de fuego
