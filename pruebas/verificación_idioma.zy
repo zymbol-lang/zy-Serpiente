@@ -134,11 +134,40 @@ AN = 78
     >> "  [" código "] " (idioma::marcador(1234)) "  →  columna " ((AN + 2 - (txt::ancho(idioma::marcador(1234)))) / 2 + 1) ¶
 }
 
+// Rotación del idioma. Parece trivial y no lo es: una función de
+// módulo que escribe estado y además devuelve un valor pierde la
+// escritura en el tree-walker (HALLAZGOS_ES.md, HLZ-SRP-001). Esta
+// comprobación es el guardián de ese fallo — si alguien vuelve a
+// juntar las dos cosas en `rotar`, aquí se ve.
+//
+// EN: Locale rotation. It looks trivial and is not: a module
+// function that writes state and also returns a value loses the
+// write in the tree-walker (HLZ-SRP-001). This is the guard.
+>> "" ¶
+>> "rotación" ¶
+rotos = 0
+idioma::fijar(lista[1])
+@ paso : 1..(lista$#) {
+    esperado = lista[paso]
+    ? (idioma::actual()) <> esperado {
+        >> "      DESFASE  actual=" (idioma::actual()) " esperado=" esperado ¶
+        rotos = rotos + 1
+    }
+    >> "  " (idioma::actual()) "  " (idioma::texto("idioma.nombre")) ¶
+    idioma::rotar()
+}
+// Tras dar la vuelta entera hay que estar de nuevo en el primero.
+// EN: after a full cycle we must be back at the first locale.
+? (idioma::actual()) <> lista[1] {
+    >> "      SIN CICLAR  " (idioma::actual()) " ≠ " lista[1] ¶
+    rotos = rotos + 1
+}
+
 idioma::fijar("es")
 
 >> "" ¶
-? faltan == 0 && descuadres == 0 {
-    >> "PASA — todas las claves resuelven y todos los marcos cuadran" ¶
+? faltan == 0 && descuadres == 0 && rotos == 0 {
+    >> "PASA — claves, marcos y rotación de idioma" ¶
 } _ {
-    >> "FALLA — " faltan " sin traducir, " descuadres " filas descuadradas" ¶
+    >> "FALLA — " faltan " sin traducir, " descuadres " filas descuadradas, " rotos " fallos de rotación" ¶
 }

@@ -33,7 +33,8 @@ Requiere el intérprete de Zymbol **v0.0.8 o posterior** (la maquetación depend
 real al arrancar y adapta el tablero automáticamente.
 
 Los dos puntos de entrada solo se diferencian en el idioma con el que arranca la
-primera pantalla.
+primera pantalla. En cualquiera de los dos, `L` cambia de idioma desde dentro del
+juego: los puntos de entrada son una comodidad, no el único camino.
 
 ---
 
@@ -47,6 +48,7 @@ primera pantalla.
 | `D` / `→` | Mover derecha |
 | `P` | Pausar / continuar |
 | `Q` | Salir durante la partida |
+| `L` | Cambiar de idioma — en las pantallas de inicio y de fin de partida |
 
 ---
 

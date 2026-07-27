@@ -19,6 +19,7 @@ implementada en [囲碁](../GO/).
 | [SRP-I18N-002](#srp-i18n-002--los-marcos-son-literales-de-ancho-fijo) | Bloqueante | Las cuatro pantallas son cajas dibujadas carácter a carácter; el relleno está tecleado | **Corregido** |
 | [SRP-I18N-003](#srp-i18n-003--el-marcador-se-posiciona-con-constantes-derivadas-del-español) | Bug latente | `_marcador` calcula columnas a partir de la longitud de `" ✦ PUNTOS "` | **Corregido** |
 | [SRP-I18N-004](#srp-i18n-004--convención-de-módulo-anterior-a-la-del-punto) | ~~Convención~~ | ~~`# dibujo` en vez de `# .dibujo`~~ | **Retirado** — era correcto |
+| [SRP-I18N-005](#srp-i18n-005--el-idioma-solo-se-elegía-al-arrancar) | Cobertura | Dos puntos de entrada, pero ninguna forma de cambiar de idioma desde dentro | **Corregido** |
 
 ---
 
@@ -163,6 +164,30 @@ implementada en [囲碁](../GO/).
 
 ---
 
+## SRP-I18N-005 · El idioma solo se elegía al arrancar
+
+- **Archivos:** `dibujo.zy`, `idioma/despacho.zy`
+- **Descripción:** tras el retrofit el juego era bilingüe, pero elegir idioma
+  significaba elegir con qué archivo arrancar: `serpiente.zy` o `snake.zy`. Es el
+  punto 9 de la lista de comprobación de
+  [USERAPPI18N.md](../interpreter/USERAPPI18N.md), y el que menos se puede dar por
+  cubierto con puntos de entrada: quien arranca `serpiente.zy` y no lee español no
+  tiene por qué saber que existe el otro archivo. Un selector de idioma sirve
+  justamente a quien no entiende el idioma en curso.
+- **Solución aplicada (2026-07-26):** `[L]` rota el idioma, tanto en la pantalla de
+  velocidad —que es la primera que se ve— como en la de fin de partida, que es donde
+  se vuelve entre partida y partida. El marco se reconstruye con el ancho nuevo, así
+  que el panel cambia de tamaño con el idioma sin descuadrarse.
+- **Lo que costó:** un bug del intérprete. `rotar()` devolvía el idioma nuevo y
+  dejaba el estado en el anterior, en el tree-walker y no en la VM. Está en
+  [HALLAZGOS_ES.md](HALLAZGOS_ES.md) como **HLZ-SRP-001**, con repro mínimo:
+  una función de módulo que escribe estado **y** devuelve un valor con `<~` pierde
+  la escritura. El workaround es partirla en dos —una pura que calcula, otra sin
+  retorno que escribe— y `pruebas/verificación_idioma.zy` tiene ahora un guardián
+  que recorre el ciclo completo de idiomas y comprueba que vuelve al primero.
+
+---
+
 ## Lo que **sí** está bien
 
 - **`README_ES.md` existe.** La documentación sí está en dos idiomas; solo el
@@ -194,3 +219,6 @@ el runner.
 - **2026-07-26** — Auditoría inicial. Cuatro hallazgos abiertos.
 - **2026-07-26** — SRP-I18N-001, 002 y 003 corregidos; SRP-I18N-004 retirado por
   erróneo. El proyecto pasa de v0.0.5 a v0.0.8. `bash pruebas/todas.sh` → `todas PASA`.
+- **2026-07-26** — SRP-I18N-005 corregido: el idioma se cambia con `[L]` desde
+  dentro del juego. Salió a la luz el bug HLZ-SRP-001 del tree-walker, registrado
+  con repro y con guardián en el gate.

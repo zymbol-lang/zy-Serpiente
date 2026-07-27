@@ -32,6 +32,8 @@ and a terminal of at least 34 × 14 characters. The game detects the real termin
 at startup and adapts the board automatically.
 
 The two entry points differ only in the language the first screen comes up in.
+Either way, `L` cycles the language from inside the game — the entry points are a
+convenience, not the only route.
 
 ---
 
@@ -45,6 +47,7 @@ The two entry points differ only in the language the first screen comes up in.
 | `D` / `→` | Move right |
 | `P` | Pause / resume |
 | `Q` | Quit during a game |
+| `L` | Cycle language — on the setup and game-over screens |
 
 ---
 

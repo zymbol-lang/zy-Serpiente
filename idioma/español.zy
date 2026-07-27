@@ -21,6 +21,7 @@
 
             "menú.título1"     => "Z Y M B O L"
             "menú.título2"     => "S E R P I E N T E"
+            "menú.idioma"     => "Idioma"
             "menú.velocidad"   => "Elige tu velocidad:"
             "menú.lento"       => "Lento"
             "menú.normal"      => "Normal"

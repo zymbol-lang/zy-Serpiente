@@ -192,6 +192,18 @@
                 i++
             }
 
+            // El idioma se puede cambiar aquí mismo, sin salir del
+            // juego. Es lo que hace que `snake.zy` sea una comodidad
+            // y no el único camino: quien arranca `serpiente.zy` y no
+            // lee español no tendría por qué saber que existe el otro
+            // archivo.
+            //
+            // EN: The language can be changed right here, without
+            // leaving the game. It is what makes `snake.zy` a
+            // convenience rather than the only route.
+            líneas = líneas $+ marco.SEPARADOR
+            líneas = líneas $+ ("  [L]  " $+ idioma::texto("menú.idioma") $+ ": " $+ idioma::texto("idioma.nombre"))
+
             filas = marco::construir(líneas, 3)
             // Colores: dos bordes fuera, y dentro un color por
             // línea de contenido. Las dos últimas opciones tienen
@@ -208,12 +220,16 @@
                 colores = colores $+ c
                 i++
             }
-            colores = colores $+ TEXTO
+            colores = colores $+ TEXTO $+ TEXTO $+ COMIDA
 
             [fila0, col0] = _esquina(filas, AN, AL)
             _pintar(filas, colores, fila0, col0)
 
             <<| tecla
+            ? tecla == 'l' || tecla == 'L' {
+                idioma::rotar()
+                >>!
+            }
             ? tecla == '1' { <~ retardos[1] }
             ? tecla == '2' { <~ retardos[2] }
             ? tecla == '3' { <~ retardos[3] }
@@ -423,6 +439,10 @@
                 idioma::texto_partida(partidas),
                 ""
             ]
+            // El fin de partida también acepta [L]: es donde se
+            // vuelve entre partida y partida.
+            // EN: the game-over screen takes [L] too — it is where
+            // you land between games.
             i = 1
             @ i <= 3 {
                 marca = "  "
@@ -449,6 +469,7 @@
 
             ? tecla == 'n' || tecla == 'N' { <~ 'n' }
             ? tecla == 's' || tecla == 'S' { <~ 's' }
+            ? tecla == 'l' || tecla == 'L' { idioma::rotar() }
             ? tecla == 'a' || tecla == 'A' { _ayuda(AN, AL) }
             ? tecla == '\n' {
                 ? sel == 1 { <~ 'n' }

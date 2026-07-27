@@ -18,6 +18,7 @@
 
             "menú.título1"     => "Z Y M B O L"
             "menú.título2"     => "S N A K E"
+            "menú.idioma"     => "Language"
             "menú.velocidad"   => "Choose your speed:"
             "menú.lento"       => "Slow"
             "menú.normal"      => "Normal"

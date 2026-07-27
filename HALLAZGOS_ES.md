@@ -192,6 +192,101 @@ Funcionalidades que Zymbol declara soportar pero que fallan en condiciones espec
 
 ---
 
+## HLZ-SRP-001 · El tree-walker pierde la escritura de estado de módulo cuando la función también devuelve un valor
+
+- **Tipo:** Bug grave (comportamiento silenciosamente incorrecto, solo en el motor por defecto)
+- **Estado:** Abierto — pendiente de corregir en el intérprete
+- **Encontrado en:** `idioma/despacho.zy`, al escribir `rotar()`
+- **Motores:** falla en el **tree-walker**; la **VM es correcta**
+
+### Síntoma
+
+Una función exportada que escribe estado de módulo **y** devuelve un valor con
+`<~` devuelve el valor nuevo pero deja el estado en el anterior:
+
+```zymbol
+rotar()          // devuelve "en"
+actual()         // devuelve "es"  ← debería ser "en"
+```
+
+Sin diagnóstico, sin aviso. El programa sigue como si nada.
+
+### Repro mínimo
+
+```zymbol
+// est.zy
+# .repro_est {
+    #> { fijar, ver, a_literal, d_sin_retorno }
+
+    v = "es"
+
+    fijar(x) { v = x }
+    ver() { <~ v }
+
+    a_literal() {
+        v = "en"
+        <~ v
+    }
+
+    d_sin_retorno() {
+        v = "en"
+    }
+}
+```
+
+```zymbol
+// main.zy
+<# ./est => m
+m::fijar("es")
+>> "a_literal      ret=" (m::a_literal()) "  estado=" (m::ver()) ¶
+m::fijar("es")
+m::d_sin_retorno()
+>> "d_sin_retorno              estado=" (m::ver()) ¶
+```
+
+```
+── tree-walker ──                    ── VM ──
+a_literal      ret=en  estado=es     a_literal      ret=en  estado=en
+d_sin_retorno          estado=en     d_sin_retorno          estado=en
+```
+
+Se probó con el valor asignado desde un literal, desde una variable local y
+desde una expresión indexada: los tres se comportan igual. Lo único que decide
+es la presencia de `<~`.
+
+### Por qué importa
+
+Es el reflejo exacto de HLZ-008 de zy-GO —«la VM ignora los parámetros de salida
+de un módulo»— pero al revés: allí fallaba la VM, aquí falla el motor por
+defecto. Y el patrón afectado es de los más naturales que hay: «cambia el estado
+y dime cómo quedó».
+
+Peor aún para la i18n: un despachador de idioma es exactamente eso. Una función
+`rotar()` que devuelve el idioma nuevo parece la API obvia, y con el
+tree-walker deja la aplicación en el idioma anterior mientras informa del
+siguiente.
+
+### Workaround aplicado
+
+Partir en dos: una función pura que calcula y una sin valor de retorno que
+escribe.
+
+```zymbol
+_siguiente() { … <~ lista[pos + 1] }   // pura
+rotar() { fijar(_siguiente()) }        // escribe, no devuelve
+```
+
+Verificado en los dos motores. La llamada intra-módulo a `fijar()` sí propaga
+—eso es lo que v0.0.8 arregló— así que el problema está acotado a la
+combinación escritura + `<~` en la misma función.
+
+### Regla práctica mientras tanto
+
+> Una función de módulo que escribe estado no debe devolver nada. Si quien llama
+> necesita el valor nuevo, que lo pida con un getter.
+
+---
+
 ## GAP — Capacidad ausente en el lenguaje
 
 Construcciones o comportamientos que se necesitan para completar Serpiente pero que Zymbol aún no implementa.
@@ -376,11 +471,15 @@ Mejoras al lenguaje Zymbol inspiradas directamente en la experiencia de construi
 
 | Categoría | Total | Abiertos | Con workaround | Propuestos | Resueltos | Descartados | Excluidos |
 |-----------|-------|----------|----------------|------------|-----------|-------------|-----------|
-| BUG | 5 | 0 | 0 | 0 | 5 | 0 | 0 |
+| BUG | 6 | 1 | 1 | 0 | 5 | 0 | 0 |
 | GAP | 6 | 0 | 0 | 0 | 4 | 1 | 1 |
 | ERROR | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | IDEA | 1 | 0 | 0 | 1 | 0 | 0 | 0 |
-| **Total** | **12** | **0** | **0** | **1** | **9** | **1** | **1** |
+| **Total** | **13** | **1** | **1** | **1** | **9** | **1** | **1** |
+
+El abierto es [HLZ-SRP-001](#hlz-srp-001--el-tree-walker-pierde-la-escritura-de-estado-de-módulo-cuando-la-función-también-devuelve-un-valor),
+encontrado el 2026-07-26 al añadir el cambio de idioma en caliente. Tiene
+workaround aplicado y repro mínimo.
 
 ---
 
