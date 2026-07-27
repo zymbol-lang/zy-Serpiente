@@ -195,7 +195,7 @@ Funcionalidades que Zymbol declara soportar pero que fallan en condiciones espec
 ## HLZ-SRP-001 · El tree-walker pierde la escritura de estado de módulo cuando la función también devuelve un valor
 
 - **Tipo:** Bug grave (comportamiento silenciosamente incorrecto, solo en el motor por defecto)
-- **Estado:** Abierto — pendiente de corregir en el intérprete
+- **Estado:** **Corregido en el intérprete** (2026-07-27)
 - **Encontrado en:** `idioma/despacho.zy`, al escribir `rotar()`
 - **Motores:** falla en el **tree-walker**; la **VM es correcta**
 
@@ -266,10 +266,30 @@ Peor aún para la i18n: un despachador de idioma es exactamente eso. Una funció
 tree-walker deja la aplicación en el idioma anterior mientras informa del
 siguiente.
 
-### Workaround aplicado
+### Solución aplicada en el intérprete (2026-07-27)
 
-Partir en dos: una función pura que calcula y una sin valor de retorno que
-escribe.
+La causa era la optimización *MoveOrClone* de `Statement::Return`: al devolver un
+identificador pelado, el tree-walker lo **saca** del scope en vez de clonarlo —
+O(1) para strings y arrays. El write-back del estado de módulo buscaba luego la
+clave, no la encontraba, y lo leía como «este marco no la tocó», así que
+descartaba la escritura. Los parámetros de salida ya estaban excluidos del
+movimiento por exactamente la misma razón (QW13); el estado de módulo no.
+
+`current_output_params` pasa a llamarse `move_guard_names` y guarda ahora las dos
+cosas: los parámetros de salida y las variables de módulo inyectadas en el marco.
+Las dos se vuelven a leer después del `<~`, así que las dos se clonan.
+
+Regresión en el repo del intérprete: `tests/modules_scope/mod_state_return.zy`,
+que escribe estado y lo devuelve como literal, como valor indexado, como local,
+como valor ajeno y junto a un parámetro de salida. Falla con el binario anterior.
+
+### El workaround se queda
+
+Partir en dos —una función pura que calcula y una sin valor de retorno que
+escribe— era el rodeo, pero se mantiene a propósito. El modo de fallo del bug era
+**silencioso**: un binario v0.0.8 sin el arreglo no da error, simplemente deja el
+idioma anterior. La forma partida funciona en los dos casos, y además separa el
+cálculo del efecto, que es buena forma con bug o sin él.
 
 ```zymbol
 _siguiente() { … <~ lista[pos + 1] }   // pura

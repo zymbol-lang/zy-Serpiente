@@ -70,22 +70,25 @@
     // screen uses it so the language can be changed from inside the
     // game and not only by choosing which file to launch — which is
     // no use to whoever cannot read the language it is currently in.
-    // Rotar es dos funciones y no una por un fallo del tree-walker:
-    // una función de módulo que escribe estado **y** devuelve un
-    // valor con `<~` pierde la escritura. `rotar()` devolvía "en" y
-    // dejaba el idioma en "es". La VM lo hace bien; el tree-walker,
-    // que es el motor por defecto, no. Está registrado en
-    // HALLAZGOS_ES.md como HLZ-SRP-001, con repro mínimo.
+    // Rotar son dos funciones y no una: una pura que calcula y otra
+    // sin valor de retorno que escribe.
     //
-    // La forma que sí propaga en los dos motores: una función pura
-    // calcula y otra sin valor de retorno escribe.
+    // Empezó siendo el rodeo de HLZ-SRP-001 —el tree-walker perdía la
+    // escritura cuando una función de módulo escribía estado y además
+    // devolvía un valor con `<~`— y se queda ahora que está corregido,
+    // porque aquel fallo era silencioso: con un binario v0.0.8 sin el
+    // arreglo, la versión de una sola función no da error, deja el
+    // idioma anterior y sigue. Separar el cálculo del efecto es además
+    // buena forma por sí sola.
     //
-    // EN: Rotating is two functions rather than one because of a
-    // tree-walker bug: a module function that both writes module
-    // state and returns a value with `<~` loses the write. The VM
-    // gets it right; the tree-walker, which is the default engine,
-    // does not. See HLZ-SRP-001 with a minimal repro. The shape that
-    // works in both: a pure function computes, a void one writes.
+    // EN: Two functions rather than one — a pure one computes, a void
+    // one writes. It started as the workaround for HLZ-SRP-001 (the
+    // tree-walker dropped the write when a module function both wrote
+    // state and returned a value) and stays now that it is fixed,
+    // because that failure was silent: on an unfixed v0.0.8 binary the
+    // single-function version does not error, it just leaves the old
+    // locale in place. Separating the computation from the effect is
+    // good shape regardless.
     _siguiente() {
         lista = idiomas()
         n = lista$#
