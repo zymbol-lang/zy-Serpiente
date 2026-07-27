@@ -1,0 +1,116 @@
+// ============================================================
+// marco.zy — paneles que caben en cualquier idioma
+//
+// Un marco no se teclea: se mide. La versión anterior de este
+// juego escribía cada fila de cada caja como un literal con el
+// relleno contado a mano —
+//
+//   "│   [1]  Lento      160 ms     │"
+//
+// — y eso ata la traducción a la aritmética de la caja: cambiar
+// "Lento" por "Slow" descuadra el marco, porque el relleno vive
+// dentro de la misma cadena que el texto. Cinco opciones en dos
+// estados eran diez literales para un menú de cinco líneas.
+//
+// Aquí el contenido llega como lista de líneas ya traducidas, se
+// mide la más ancha con texto::ancho —columnas de terminal, no
+// grafemas— y el marco se construye alrededor. Todas las filas que
+// salen tienen exactamente el mismo ancho, en el idioma que sea.
+//
+// EN: marco.zy — panels that fit in any language. A frame is
+// measured, not typed. Content arrives as a list of already
+// translated lines; the widest is measured in terminal columns and
+// the frame is built around it. Every row returned has exactly the
+// same column count, whatever the language.
+// ============================================================
+
+# marco {
+
+    <# ./texto => txt
+
+    #> { SEPARADOR, CENTRADO, construir, ancho_de, fila_menú }
+
+    // Una línea de contenido igual a esta se convierte en una regla
+    // horizontal del ancho del marco. Es un glifo de control que no
+    // aparece en ningún texto de interfaz, así que no puede chocar
+    // con una traducción.
+    //
+    // EN: A content line equal to this becomes a horizontal rule as
+    // wide as the frame. It is a control glyph that appears in no
+    // interface string, so it cannot collide with a translation.
+    SEPARADOR := "␟"
+
+    // Prefijo que pide centrar la línea dentro del marco. Centrar
+    // hay que hacerlo aquí y no antes: el ancho del marco no se
+    // conoce hasta haber medido todas las líneas, así que una línea
+    // centrada contra un ancho supuesto queda descentrada en cuanto
+    // otra línea del mismo panel es más larga.
+    //
+    // EN: Prefix asking for the line to be centred inside the frame.
+    // Centring has to happen here: the frame width is not known
+    // until every line has been measured, so a line centred against
+    // a guessed width goes off-centre as soon as another line in the
+    // same panel is longer.
+    CENTRADO := "␝"
+
+    // La línea más ancha de una lista, en columnas de terminal.
+    // EN: Widest line of a list, in terminal columns.
+    ancho_de(líneas) {
+        w = 0
+        @ l : líneas {
+            ? l <> SEPARADOR {
+                c = txt::ancho(_desnudo(l))
+                ? c > w { w = c }
+            }
+        }
+        <~ w
+    }
+
+    // Quita el prefijo de centrado si lo lleva.
+    // EN: Strip the centring prefix if present.
+    _desnudo(l) {
+        ? (l$#) == 0 { <~ l }
+        ? l$[1..1] == CENTRADO { <~ l$[2..] }
+        <~ l
+    }
+
+    // Enmarca una lista de líneas. `hueco` es el número de espacios
+    // entre el borde y el texto, a cada lado.
+    //
+    // EN: Frame a list of lines. `hueco` is the number of spaces
+    // between border and text, on each side.
+    construir(líneas, hueco) {
+        w = ancho_de(líneas)
+        borde = "─" $* (w + hueco * 2)
+        margen = " " $* hueco
+        filas = ["╭" $+ borde $+ "╮"]
+        @ l : líneas {
+            ? l == SEPARADOR {
+                filas = filas $+ ("├" $+ borde $+ "┤")
+            } _ {
+                cuerpo = _desnudo(l)
+                ? cuerpo <> l {
+                    filas = filas $+ ("│" $+ margen $+ txt::centrar(cuerpo, w) $+ margen $+ "│")
+                } _ {
+                    filas = filas $+ ("│" $+ margen $+ txt::derecha(l, w) $+ margen $+ "│")
+                }
+            }
+        }
+        filas = filas $+ ("╰" $+ borde $+ "╯")
+        <~ filas
+    }
+
+    // Una entrada de menú, con la marca de selección delante. La
+    // marca se pone ANTES de medir, para que el marco tenga sitio
+    // para ella en todos los idiomas y las filas no se muevan de
+    // sitio al mover el cursor.
+    //
+    // EN: A menu entry with its selection marker in front. The
+    // marker goes on BEFORE measuring, so the frame has room for it
+    // in every language and rows never shift when the cursor moves.
+    fila_menú(número, etiqueta, seleccionada) {
+        marca = "  "
+        ? seleccionada { marca = "► " }
+        <~ "{marca}[{número}]  {etiqueta}"
+    }
+}

@@ -1,92 +1,19 @@
-// Serpiente — juego clásico de serpiente en la terminal
-// Controles: WASD o flechas — Q para salir — P para pausar
-// Ejecutar: zymbol run serpiente.zy
+// ============================================================
+// serpiente.zy — punto de entrada, español
+//
+// Los dos puntos de entrada solo se diferencian en el idioma que
+// preseleccionan. Aquí no se decide en qué idioma se juega, sino
+// en qué idioma aparece la primera pantalla.
+//
+//   zymbol run serpiente.zy
+//
+// EN: serpiente.zy — entry point, Spanish. The two entry points
+// differ only in the locale they preselect; this decides which
+// language the first screen comes up in.
+//
+//   zymbol run serpiente.zy
+// ============================================================
 
-<# ./logica => l
-<# ./dibujo => d
+<# ./juego => juego
 
-// Consultar tamaño real de la terminal y derivar dimensiones internas del tablero
-[filas, cols] = >>?
-AN = cols  - 2
-AL = filas - 2
-
-fila_c = AL / 2 + 1
-col_c  = AN / 2 + 1
-ult_filas = filas
-ult_cols  = cols
-
-// Semilla LCG desde tres fuentes de entropía independientes — sh puro, sin bash
-_ns  = <\ "date +%N" \>
-_pid = <\ "echo $$" \>
-_rnd = <\ "od -An -N2 -tu2 /dev/urandom | tr -d ' \n'" \>
-semilla = (#|_ns| + #|_pid| * 31337 + #|_rnd| * 65537) % 2147483647
-
->>| {
-    retardo = d::menu_velocidad(AN, AL)
-
-    @:main {
-        serpiente = [(fila_c, col_c), (fila_c, col_c-1), (fila_c, col_c-2)]
-        dir      = '→'
-        puntos   = 0
-        pendiente = #0  // posición de fruta pendiente de mostrar como @, o #0
-
-        [comida, semilla] = l::nueva_comida(serpiente, AN, AL, semilla)
-        [fruta,  semilla] = l::fruta_aleatoria(semilla)
-
-        d::dibujar_inicio(serpiente, comida, fruta, puntos, AN, AL)
-
-        @:game {
-            <<|? tecla
-
-            // Detectar resize — reiniciar partida centrada en el nuevo tamaño
-            [filas_act, cols_act] = >>?
-            ? filas_act <> ult_filas || cols_act <> ult_cols {
-                AN = cols_act - 2
-                AL = filas_act - 2
-                fila_c = AL / 2 + 1
-                col_c  = AN / 2 + 1
-                ult_filas = filas_act
-                ult_cols  = cols_act
-                @:main>
-            }
-
-            ? tecla == 'q' || tecla == 'Q' { @:game! }
-
-            ? tecla == 'p' || tecla == 'P' {
-                d::pausa(AN, AL)
-                d::dibujar_inicio(serpiente, comida, fruta, puntos, AN, AL)
-            }
-
-            ? tecla <> '\0' {
-                dir = l::nueva_dir(tecla, dir)
-            }
-
-            cola_vieja   = serpiente[serpiente$#]
-            comida_vieja = comida
-
-            // crecer=#1: hay crecimiento diferido del tick anterior (cola se queda)
-            crecer = pendiente <> #0
-
-            [vivo, serpiente, puntos, comio] = l::mover(serpiente, dir, comida, puntos, AN, AL, crecer)
-
-            [comida, fruta, semilla] = l::tick_comida(comio, serpiente, AN, AL, semilla, comida, fruta)
-
-            // pos_arroba: dónde dibujar @ este tick (posición de fruta del tick anterior)
-            pos_arroba = pendiente
-            ? crecer { pendiente = #0 }
-            ? comio  { pendiente = serpiente[1] }
-
-            ? !vivo { @:game! }
-
-            d::dibujar(serpiente, cola_vieja, crecer, comio, comida_vieja, comida, fruta, puntos, AN, AL, pos_arroba)
-            @~ retardo
-        }
-
-        // Estadísticas de sesión: ° auto-inicializa sin pre-declaración
-        °partidas += 1
-        marcadores = °marcadores$+ puntos
-
-        accion = d::fin_juego(puntos, partidas, marcadores, AN, AL)
-        ? accion == 's' { @:main! }
-    }
-}
+juego::iniciar("es")

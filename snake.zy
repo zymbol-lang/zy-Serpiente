@@ -1,0 +1,18 @@
+// ============================================================
+// snake.zy — entry point, English
+//
+// The two entry points differ only in the locale they preselect.
+// This decides which language the first screen comes up in, not
+// which language the game is played in.
+//
+//   zymbol run snake.zy
+//
+// ES: snake.zy — punto de entrada, inglés. Los dos puntos de
+// entrada solo se diferencian en el idioma que preseleccionan.
+//
+//   zymbol run snake.zy
+// ============================================================
+
+<# ./juego => juego
+
+juego::iniciar("en")

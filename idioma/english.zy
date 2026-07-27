@@ -1,0 +1,64 @@
+// ============================================================
+// idioma/english.zy — inglés (en)
+// Funciones del contrato: texto · marcador · texto_partida
+// Las claves están en español; la base está en idioma/español.zy.
+//
+// EN: idioma/english.zy — English locale (en)
+// Interface contract: texto · marcador · texto_partida
+// The keys are Spanish; the base lives in idioma/español.zy.
+// ============================================================
+
+# .idioma_english {
+
+    #> { texto, marcador, texto_partida }
+
+    texto(clave) {
+        <~ ?? clave {
+            "idioma.nombre"    => "English"
+
+            "menú.título1"     => "Z Y M B O L"
+            "menú.título2"     => "S N A K E"
+            "menú.velocidad"   => "Choose your speed:"
+            "menú.lento"       => "Slow"
+            "menú.normal"      => "Normal"
+            "menú.rápido"      => "Fast"
+            "menú.infernal"    => "Infernal"
+            "menú.demencial"   => "Insane"
+
+            "ayuda.título"     => "H E L P"
+            "ayuda.movimiento" => "Movement:"
+            "ayuda.arriba"     => "up"
+            "ayuda.abajo"      => "down"
+            "ayuda.izquierda"  => "left"
+            "ayuda.derecha"    => "right"
+            "ayuda.enPartida"  => "During play:"
+            "ayuda.salir"      => "quit"
+            "ayuda.pausar"     => "pause"
+            "ayuda.crecer1"    => "When it eats, the snake grows from"
+            "ayuda.crecer2"    => "the tail on the next clock tick."
+            "ayuda.continuar"  => "Press any key..."
+
+            "pausa.título"     => "P A U S E D"
+            "pausa.continuar"  => "resume"
+
+            "fin.título1"      => "G A M E"
+            "fin.título2"      => "O V E R"
+            "fin.puntaje"      => "Score"
+            "fin.récord"       => "Best"
+            "fin.nuevo"        => "New game"
+            "fin.salir"        => "Quit"
+            "fin.ayuda"        => "Help"
+
+            "marcador.puntos"  => "SCORE"
+
+            _                   => clave
+        }
+    }
+
+    marcador(puntos) { <~ " ✦ SCORE {puntos} ✦ " }
+
+    texto_partida(n) {
+        ? n == 1 { <~ "First game of this session" }
+        <~ "Game {n} of this session"
+    }
+}

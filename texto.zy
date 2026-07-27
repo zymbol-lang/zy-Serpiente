@@ -1,0 +1,32 @@
+// ============================================================
+// texto.zy — medidas de texto para una terminal multiidioma
+//
+// El ancho de una cadena en la terminal no es su número de
+// grafemas: los ideogramas y la mayoría de los emoji ocupan dos
+// columnas. Por eso todo cálculo de ancho de este programa pasa
+// por ancho() y nunca por $#.
+//
+// Esto es una capa fina en español sobre std/term: el juego habla
+// español y la biblioteca estándar habla inglés. Es el mecanismo
+// de i18n de código de interpreter/I18N.md aplicado a std/, y no
+// cuesta nada en ejecución — cada nombre se resuelve a una
+// referencia directa al cargar el módulo.
+//
+// EN: texto.zy — text metrics for a multilingual TUI. A thin
+// Spanish layer over std/term: the game speaks Spanish, the
+// standard library speaks English. Column count is not grapheme
+// count, so every width calculation goes through ancho().
+// ============================================================
+
+# texto {
+
+    #> {
+        t::width      => ancho
+        t::pad_left   => izquierda
+        t::pad_right  => derecha
+        t::center     => centrar
+        t::truncate   => recortar
+    }
+
+    <# std/term => t
+}

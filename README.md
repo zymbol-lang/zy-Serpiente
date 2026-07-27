@@ -1,15 +1,20 @@
 # Serpiente
 
-> **Revisado para v0.0.5 — 2026-05-12**
+> **Targets Zymbol v0.0.8** — revised 2026-07-26
 
 Classic Snake running in the terminal, written entirely in Zymbol.
 
 Serpiente was the first real TUI program in the language — it served as a stress test
-for the terminal primitives introduced in **Zymbol v0.0.5**.
+for the terminal primitives introduced in **Zymbol v0.0.5**, and was retrofitted with
+full internationalization in **v0.0.8**.
 
-> **Validation project for Zymbol v0.0.5** *(currently in development)* — built to
-> stress-test TUI primitives, the register VM, hot-definition variables, and the new
-> standalone packaging pipeline introduced in this milestone.
+> **Validation project for Zymbol v0.0.5** — built to stress-test TUI primitives, the
+> register VM, hot-definition variables, and the standalone packaging pipeline.
+>
+> **Revisited for v0.0.8** — the game is now bilingual (Spanish / English) and every
+> panel is built from measured content via `std/term` instead of fixed-width literals.
+> See [AUDITORIA_I18N_ES.md](AUDITORIA_I18N_ES.md) and the project-wide doctrine in
+> [USERAPPI18N.md](https://github.com/zymbol-lang/interpreter/blob/main/USERAPPI18N.md).
 
 > **Español:** [README_ES.md](README_ES.md)
 
@@ -18,11 +23,15 @@ for the terminal primitives introduced in **Zymbol v0.0.5**.
 ## How to play
 
 ```bash
-zymbol run serpiente.zy
+zymbol run serpiente.zy    # Spanish
+zymbol run snake.zy        # English
 ```
 
-Requires a terminal of at least 34 × 14 characters. The game detects the real terminal
-size at startup and adapts the board automatically.
+Requires the Zymbol interpreter **v0.0.8 or later** (the layout depends on `std/term`)
+and a terminal of at least 34 × 14 characters. The game detects the real terminal size
+at startup and adapts the board automatically.
+
+The two entry points differ only in the language the first screen comes up in.
 
 ---
 
@@ -47,19 +56,24 @@ A centered menu appears at startup. Navigate with `↑` `↓` and confirm with `
 (you can also press `1`–`5` directly):
 
 ```
-╭──────────────────────────────╮
-│        Z Y M B O L          │
-│      S E R P I E N T E      │
-├──────────────────────────────┤
-│   Choose your speed:         │
-│                              │
-│ ► [1]  Slow       160 ms    │
-│   [2]  Normal     130 ms    │
-│   [3]  Fast       100 ms    │
-│   [4]  Insane      70 ms    │
-│   [5]  Demonic     40 ms    │
-╰──────────────────────────────╯
+╭───────────────────────────────╮
+│         Z Y M B O L           │
+│          S N A K E            │
+├───────────────────────────────┤
+│   Choose your speed:          │
+│                               │
+│   ► [1]  Slow        160 ms   │
+│     [2]  Normal      130 ms   │
+│     [3]  Fast        100 ms   │
+│     [4]  Infernal    70 ms    │
+│     [5]  Insane      40 ms    │
+╰───────────────────────────────╯
 ```
+
+The frame is not typed: the labels come from the active locale and the box is built
+around the widest of them, so the Spanish menu is a different width and still squares
+up. The `►` marker is added *before* measuring, which is why the rows do not shift
+when the cursor moves.
 
 ### Gameplay
 
@@ -93,16 +107,17 @@ When the snake hits a wall or its own body, a centered menu appears.
 Navigate with `↑` `↓` + `↵` (or press `N` / `S` / `A` directly):
 
 ```
-╭───────────────────╮
-│     J U E G O     │
-│   T E R M I N Ó   │
-╰───────────────────╯
-
-Final score: 7
-
-► New game
-  Quit
-  Help
+╭────────────────────────────────╮
+│            G A M E             │
+│            O V E R             │
+├────────────────────────────────┤
+│   Score: 7    Best: 12         │
+│   Game 3 of this session       │
+│                                │
+│   ► New game                   │
+│     Quit                       │
+│     Help                       │
+╰────────────────────────────────╯
 ```
 
 - **New game** — restart with the same speed chosen at startup
@@ -115,10 +130,22 @@ Final score: 7
 
 ```
 serpiente/
-├── serpiente.zy    entry point — seed, dimensions, @:main and @:game loops
+├── serpiente.zy    entry point — preselects Spanish
+├── snake.zy        entry point — preselects English
+├── juego.zy        the game: seed, dimensions, @:main and @:game loops
 ├── logica.zy       movement, collisions, food spawn, and LCG
 ├── dibujo.zy       all output: menus, board, delta rendering, pause, game over
-└── HALLAZGOS_ES.md bug/gap/idea registry found during development (Spanish)
+├── marco.zy        panels built from measured content — no fixed widths
+├── texto.zy        Spanish layer over std/term (column metrics)
+├── idioma/
+│   ├── despacho.zy i18n dispatcher — holds the locale as module state
+│   ├── español.zy  Spanish locale (base language, where the keys come from)
+│   └── english.zy  English locale
+├── pruebas/
+│   ├── verificación_idioma.zy  completeness gate: keys × locales, frames, badge
+│   └── todas.sh                runs every suite in both engines
+├── AUDITORIA_I18N_ES.md  i18n audit of the project (Spanish)
+└── HALLAZGOS_ES.md       bug/gap/idea registry found during development (Spanish)
 ```
 
 ### Modules

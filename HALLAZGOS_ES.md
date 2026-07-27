@@ -361,7 +361,7 @@ Mejoras al lenguaje Zymbol inspiradas directamente en la experiencia de construi
   Esto funciona, pero en programas más grandes la gestión de paletas se vuelve manual.
 - **Propuesta:** Un módulo estándar `std/ansi` que exporte constantes para los 256 colores ANSI más comunes, con nombres descriptivos:
   ```zymbol
-  <# std/ansi <= color
+  <# std/ansi => color
 
   >>~ (row, col, color.BRIGHT_GREEN) > "█"
   >>~ (row, col, color.BRIGHT_YELLOW) > "◆"

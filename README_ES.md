@@ -1,15 +1,21 @@
 # Serpiente
 
-> **Revisado para v0.0.5 — 2026-05-12**
+> **Apunta a Zymbol v0.0.8** — revisado el 2026-07-26
 
 Snake clásico corriendo en la terminal, escrito completamente en Zymbol.
 
 Serpiente fue el primer programa TUI real en el lenguaje — sirvió como prueba de fuego
-de las primitivas de terminal introducidas en **Zymbol v0.0.5**.
+de las primitivas de terminal introducidas en **Zymbol v0.0.5**, y en **v0.0.8** se le
+añadió internacionalización completa.
 
-> **Proyecto de validación de Zymbol v0.0.5** *(actualmente en desarrollo)* — construido
-> para poner a prueba las primitivas TUI, la VM de registros, las variables hot-definition
-> y el nuevo pipeline de empaquetado standalone introducidos en este milestone.
+> **Proyecto de validación de Zymbol v0.0.5** — construido para poner a prueba las
+> primitivas TUI, la VM de registros, las variables hot-definition y el pipeline de
+> empaquetado standalone.
+>
+> **Revisitado para v0.0.8** — el juego es ahora bilingüe (español / inglés) y cada
+> panel se construye midiendo su contenido con `std/term` en vez de con literales de
+> ancho fijo. Ver [AUDITORIA_I18N_ES.md](AUDITORIA_I18N_ES.md) y la doctrina común en
+> [USERAPPI18N.md](https://github.com/zymbol-lang/interpreter/blob/main/USERAPPI18N.md).
 
 > **English:** [README.md](README.md)
 
@@ -18,11 +24,16 @@ de las primitivas de terminal introducidas en **Zymbol v0.0.5**.
 ## Cómo jugar
 
 ```bash
-zymbol run serpiente.zy
+zymbol run serpiente.zy    # español
+zymbol run snake.zy        # inglés
 ```
 
-Requiere una terminal de al menos 34 × 14 caracteres. El juego detecta el tamaño real
-al arrancar y adapta el tablero automáticamente.
+Requiere el intérprete de Zymbol **v0.0.8 o posterior** (la maquetación depende de
+`std/term`) y una terminal de al menos 34 × 14 caracteres. El juego detecta el tamaño
+real al arrancar y adapta el tablero automáticamente.
+
+Los dos puntos de entrada solo se diferencian en el idioma con el que arranca la
+primera pantalla.
 
 ---
 
@@ -47,19 +58,24 @@ Al iniciar aparece un menú centrado. Se navega con `↑` `↓` y se confirma co
 (también se puede pulsar directamente `1`–`5`):
 
 ```
-╭──────────────────────────────╮
-│        Z Y M B O L          │
-│      S E R P I E N T E      │
-├──────────────────────────────┤
-│   Elige tu velocidad:        │
-│                              │
-│ ► [1]  Lento      160 ms    │
-│   [2]  Normal     130 ms    │
-│   [3]  Rápido     100 ms    │
-│   [4]  Infernal    70 ms    │
-│   [5]  Demencial   40 ms    │
-╰──────────────────────────────╯
+╭───────────────────────────────╮
+│         Z Y M B O L           │
+│      S E R P I E N T E        │
+├───────────────────────────────┤
+│   Elige tu velocidad:         │
+│                               │
+│   ► [1]  Lento       160 ms   │
+│     [2]  Normal      130 ms   │
+│     [3]  Rápido      100 ms   │
+│     [4]  Infernal    70 ms    │
+│     [5]  Demencial   40 ms    │
+╰───────────────────────────────╯
 ```
+
+El marco no está tecleado: las etiquetas vienen del idioma activo y la caja se
+construye alrededor de la más ancha, así que el menú en inglés tiene otro ancho y
+también cuadra. La marca `►` se añade *antes* de medir, y por eso las filas no se
+mueven de sitio al mover el cursor.
 
 ### Juego
 
@@ -94,16 +110,17 @@ Al colisionar con una pared o con el propio cuerpo aparece un menú centrado.
 Se navega con `↑` `↓` + `↵` (o con las letras `N` / `S` / `A`):
 
 ```
-╭───────────────────╮
-│     J U E G O     │
-│   T E R M I N Ó   │
-╰───────────────────╯
-
-Puntaje final: 7
-
-► Nuevo juego
-  Salir
-  Ayuda
+╭──────────────────────────────────╮
+│            J U E G O             │
+│          T E R M I N Ó           │
+├──────────────────────────────────┤
+│   Puntaje: 7    Récord: 12       │
+│   Partida 3 de la sesión         │
+│                                  │
+│   ► Nuevo juego                  │
+│     Salir                        │
+│     Ayuda                        │
+╰──────────────────────────────────╯
 ```
 
 - **Nuevo juego** — reinicia la partida (misma velocidad elegida al inicio)
@@ -116,10 +133,22 @@ Puntaje final: 7
 
 ```
 serpiente/
-├── serpiente.zy    entry point — semilla, dimensiones, loop @:main y @:game
+├── serpiente.zy    punto de entrada — preselecciona español
+├── snake.zy        punto de entrada — preselecciona inglés
+├── juego.zy        el juego: semilla, dimensiones, loop @:main y @:game
 ├── logica.zy       movimiento, colisiones, spawn de comida y LCG
 ├── dibujo.zy       todo el output: menús, tablero, delta rendering, pausa, game over
-└── HALLAZGOS_ES.md registro de bugs, gaps e ideas encontrados durante la construcción
+├── marco.zy        paneles construidos midiendo el contenido — sin anchos fijos
+├── texto.zy        capa en español sobre std/term (medidas de columna)
+├── idioma/
+│   ├── despacho.zy despachador de i18n — guarda el idioma como estado de módulo
+│   ├── español.zy  idioma español (base: de aquí salen las claves)
+│   └── english.zy  idioma inglés
+├── pruebas/
+│   ├── verificación_idioma.zy  puerta de completitud: claves × idiomas, marcos, marcador
+│   └── todas.sh                corre todas las suites en los dos motores
+├── AUDITORIA_I18N_ES.md  auditoría de i18n del proyecto
+└── HALLAZGOS_ES.md       registro de bugs, gaps e ideas encontrados durante la construcción
 ```
 
 ### Módulos

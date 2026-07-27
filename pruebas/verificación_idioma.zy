@@ -1,0 +1,144 @@
+// ============================================================
+// pruebas/verificación_idioma.zy — la puerta de completitud
+//
+// Recorre el catálogo maestro de claves contra todos los idiomas
+// registrados. Un idioma al que le falte una clave devuelve la
+// clave misma (el caso identidad de texto()), y eso es justo lo
+// que hace la comprobación decidible: las claves llevan prefijo de
+// dominio, así que ninguna puede coincidir con su traducción —
+// tampoco en español, que es el idioma base.
+//
+//   zymbol run pruebas/verificación_idioma.zy
+//   zymbol run --vm pruebas/verificación_idioma.zy
+//
+// EN: pruebas/verificación_idioma.zy — i18n completeness gate.
+// Walks the master catalogue against every registered locale. A
+// missing key returns itself, which is what makes the check
+// decidable — every key carries a domain prefix, so no key equals
+// its own translation, not even in the base language.
+// ============================================================
+
+<# ../idioma/despacho => idioma
+<# ../texto => txt
+<# ../marco => marco
+
+claves = idioma::claves()
+lista  = idioma::idiomas()
+
+>> "Serpiente — verificación de i18n" ¶
+>> "claves: " (claves$#) "   idiomas: " (lista$#) ¶
+>> "" ¶
+
+faltan = 0
+
+@ código : lista {
+    idioma::fijar(código)
+    nombre = idioma::texto("idioma.nombre")
+    ausentes = 0
+
+    @ clave : claves {
+        ? (idioma::texto(clave)) == clave {
+            ? ausentes == 0 { >> "  [" código "] " nombre ¶ }
+            >> "      FALTA  " clave ¶
+            ausentes = ausentes + 1
+        }
+    }
+
+    ? ausentes == 0 {
+        >> "  [" código "] " (txt::derecha(nombre, 10)) "  " (claves$#) "/" (claves$#) "  OK" ¶
+    } _ {
+        >> "      → " ausentes " sin traducir" ¶
+    }
+
+    faltan = faltan + ausentes
+}
+
+// Frases compuestas. Una búsqueda estática solo puede faltar; una
+// frase compuesta puede estar mal — un número mal formateado, una
+// rama gramatical sin cubrir. Se ejercitan en todos los idiomas y
+// con los valores que eligen cada rama.
+//
+// EN: Composed messages. A static lookup can only be missing; a
+// composed sentence can be wrong. Exercised in every locale with
+// the values that select each branch.
+>> "" ¶
+>> "frases compuestas" ¶
+@ código : lista {
+    idioma::fijar(código)
+    >> "  [" código "] " (idioma::marcador(0)) " · " (idioma::marcador(7)) " · " (idioma::marcador(1234)) ¶
+    >> "        " (idioma::texto_partida(1)) ¶
+    >> "        " (idioma::texto_partida(12)) ¶
+}
+
+// Los marcos. La razón por la que este juego no tenía i18n es que
+// sus cajas eran literales de ancho fijo; lo que hay que probar,
+// entonces, no es solo que el texto exista sino que el marco
+// siga cuadrando cuando el texto cambia de idioma.
+//
+// EN: The frames. This game had no i18n because its boxes were
+// fixed-width literals, so what needs testing is not only that the
+// text exists but that the frame still squares up when the text
+// changes language.
+>> "" ¶
+>> "marcos" ¶
+descuadres = 0
+@ código : lista {
+    idioma::fijar(código)
+    líneas = [
+        marco.CENTRADO $+ idioma::texto("menú.título2"),
+        marco.SEPARADOR,
+        idioma::texto("menú.velocidad"),
+        marco::fila_menú(1, idioma::texto("menú.lento"), #0),
+        marco::fila_menú(5, idioma::texto("menú.demencial"), #1)
+    ]
+    filas = marco::construir(líneas, 3)
+    esperado = txt::ancho(filas[1])
+    @ fila : filas {
+        >> "  " fila ¶
+        ? (txt::ancho(fila)) <> esperado {
+            >> "      DESCUADRE  " (txt::ancho(fila)) " ≠ " esperado ¶
+            descuadres = descuadres + 1
+        }
+    }
+    >> "" ¶
+}
+
+// El marcador que va sobre el borde superior. Es el único texto que
+// se dibuja *durante* la partida, y el borde superior es a la vez
+// pared de colisión: un descentrado aquí no es una pantalla fea,
+// corrompe el campo de juego. Antes se colocaba con cinco
+// desplazamientos constantes derivados de la longitud de " ✦ PUNTOS "
+// en español (SRP-I18N-003).
+//
+// EN: The badge over the top border — the only text drawn *during*
+// play, on a border that doubles as a collision wall. It used to be
+// placed with five constants derived from the length of the Spanish
+// word.
+>> "marcador sobre el borde (ancho de tablero 78)" ¶
+AN = 78
+@ código : lista {
+    idioma::fijar(código)
+    @ puntos : [0, 7, 1234] {
+        insignia = idioma::marcador(puntos)
+        ancho = txt::ancho(insignia)
+        col = (AN + 2 - ancho) / 2 + 1
+        // El corchete izquierdo va en col-1 y el derecho en col+ancho;
+        // los dos tienen que caer dentro del borde, que va de 1 a AN+2.
+        // EN: brackets at col-1 and col+ancho must both land inside
+        // the border, which runs from 1 to AN+2.
+        ? col - 1 < 1 || col + ancho > AN + 2 {
+            >> "      FUERA DEL BORDE  [" código "] " insignia ¶
+            descuadres = descuadres + 1
+        }
+    }
+    >> "  [" código "] " (idioma::marcador(1234)) "  →  columna " ((AN + 2 - (txt::ancho(idioma::marcador(1234)))) / 2 + 1) ¶
+}
+
+idioma::fijar("es")
+
+>> "" ¶
+? faltan == 0 && descuadres == 0 {
+    >> "PASA — todas las claves resuelven y todos los marcos cuadran" ¶
+} _ {
+    >> "FALLA — " faltan " sin traducir, " descuadres " filas descuadradas" ¶
+}

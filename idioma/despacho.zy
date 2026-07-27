@@ -1,0 +1,113 @@
+// ============================================================
+// idioma/despacho.zy — el despachador de idioma
+//
+// Toda cadena que ve el jugador pasa por aquí, y solo por aquí.
+// El idioma activo vive como estado del módulo: el estado se
+// comparte por ruta de archivo, así que cualquier módulo que
+// importe este ve la misma selección sin que nadie tenga que
+// pasar un parámetro de idioma por la cadena de llamadas.
+//
+// Las claves están en español, porque el programa está escrito en
+// español. El español es la base y los demás idiomas se apoyan
+// sobre ella: cuando dibujo.zy pide "menú.velocidad" está pidiendo
+// un concepto en español, no un identificador neutro en inglés.
+//
+// Cada clave lleva prefijo de dominio ("menú.título", nunca
+// "título"). Así una clave no puede coincidir nunca con su propia
+// traducción al español, y eso es lo que hace que la comprobación
+// «traducción == clave ⇒ falta» siga siendo decidible también en
+// el idioma base.
+//
+// Añadir un idioma son tres ediciones: escribir idioma/<nombre>.zy
+// contra el contrato de cuatro funciones, importarlo aquí y añadir
+// una rama a cada reparto. pruebas/verificación_idioma.zy lo
+// comprueba después clave por clave.
+//
+// EN: idioma/despacho.zy — i18n dispatcher. Single entry point for
+// every user-visible string. The active locale is module state,
+// shared per file path, so no render function carries a language
+// parameter. Keys are Spanish — the base language of the program —
+// and every key has a domain prefix so that a key can never equal
+// its own Spanish translation.
+// ============================================================
+
+# .idioma_despacho {
+
+    <# ./español => es
+    <# ./english => en
+
+    #> {
+        fijar
+        actual
+        idiomas
+        claves
+        texto
+        marcador
+        texto_partida
+    }
+
+    idioma_actual = "es"
+
+    // Códigos ISO 639-1. El código es un convenio internacional y
+    // no se traduce. El español va primero porque el programa está
+    // escrito en español.
+    //
+    // EN: ISO 639-1 codes — an international convention, left as
+    // they are. Spanish leads because the program is written in it.
+    idiomas() { <~ ["es", "en"] }
+
+    fijar(código) { idioma_actual = código }
+    actual() { <~ idioma_actual }
+
+    texto(clave) {
+        ? idioma_actual == "en" { <~ en::texto(clave) }
+        <~ es::texto(clave)
+    }
+
+    // El marcador que va sobre el borde superior durante la
+    // partida. Se compone entero aquí porque dibujo.zy lo centra
+    // midiéndolo, y para eso tiene que ser una sola cadena.
+    //
+    // EN: The badge drawn over the top border during play. It is
+    // composed whole here because dibujo.zy centres it by measuring
+    // it, which needs it to be one string.
+    marcador(puntos) {
+        ? idioma_actual == "en" { <~ en::marcador(puntos) }
+        <~ es::marcador(puntos)
+    }
+
+    // "Partida 3 de la sesión" / "Game 3 of this session".
+    // Es una frase con un número dentro, así que la compone cada
+    // idioma; una tabla estática no puede.
+    //
+    // EN: A sentence with a number in it, so each locale composes
+    // it. A static table cannot.
+    texto_partida(n) {
+        ? idioma_actual == "en" { <~ en::texto_partida(n) }
+        <~ es::texto_partida(n)
+    }
+
+    // Catálogo maestro de claves. Es el contrato que todo idioma
+    // tiene que cumplir, y pruebas/verificación_idioma.zy lo
+    // recorre contra todos los idiomas registrados avisando de
+    // cualquier clave que caiga en el caso identidad.
+    //
+    // EN: The master key catalogue — the contract every locale must
+    // satisfy, walked by pruebas/verificación_idioma.zy.
+    claves() {
+        <~ [
+            "idioma.nombre",
+            "menú.título1", "menú.título2", "menú.velocidad",
+            "menú.lento", "menú.normal", "menú.rápido",
+            "menú.infernal", "menú.demencial",
+            "ayuda.título", "ayuda.movimiento", "ayuda.arriba",
+            "ayuda.abajo", "ayuda.izquierda", "ayuda.derecha",
+            "ayuda.enPartida", "ayuda.salir", "ayuda.pausar",
+            "ayuda.crecer1", "ayuda.crecer2", "ayuda.continuar",
+            "pausa.título", "pausa.continuar",
+            "fin.título1", "fin.título2", "fin.puntaje",
+            "fin.récord", "fin.nuevo", "fin.salir", "fin.ayuda",
+            "marcador.puntos"
+        ]
+    }
+}

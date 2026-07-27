@@ -1,0 +1,67 @@
+// ============================================================
+// idioma/español.zy — español (es), idioma base
+// Funciones del contrato: texto · marcador · texto_partida
+//
+// Este es el idioma en el que está escrito el programa, así que
+// esta tabla es la que despliega cada concepto en la forma en que
+// se lee. No es una función identidad: la clave "menú.velocidad"
+// se abre aquí como "Elige tu velocidad".
+//
+// EN: idioma/español.zy — Spanish locale (es), the base language.
+// Interface contract: texto · marcador · texto_partida.
+// ============================================================
+
+# .idioma_español {
+
+    #> { texto, marcador, texto_partida }
+
+    texto(clave) {
+        <~ ?? clave {
+            "idioma.nombre"    => "Español"
+
+            "menú.título1"     => "Z Y M B O L"
+            "menú.título2"     => "S E R P I E N T E"
+            "menú.velocidad"   => "Elige tu velocidad:"
+            "menú.lento"       => "Lento"
+            "menú.normal"      => "Normal"
+            "menú.rápido"      => "Rápido"
+            "menú.infernal"    => "Infernal"
+            "menú.demencial"   => "Demencial"
+
+            "ayuda.título"     => "A Y U D A"
+            "ayuda.movimiento" => "Movimiento:"
+            "ayuda.arriba"     => "arriba"
+            "ayuda.abajo"      => "abajo"
+            "ayuda.izquierda"  => "izquierda"
+            "ayuda.derecha"    => "derecha"
+            "ayuda.enPartida"  => "En partida:"
+            "ayuda.salir"      => "salir"
+            "ayuda.pausar"     => "pausar"
+            "ayuda.crecer1"    => "Al comer, la serpiente crece por la"
+            "ayuda.crecer2"    => "cola en el siguiente tick de reloj."
+            "ayuda.continuar"  => "Presiona cualquier tecla..."
+
+            "pausa.título"     => "P A U S A"
+            "pausa.continuar"  => "continuar"
+
+            "fin.título1"      => "J U E G O"
+            "fin.título2"      => "T E R M I N Ó"
+            "fin.puntaje"      => "Puntaje"
+            "fin.récord"       => "Récord"
+            "fin.nuevo"        => "Nuevo juego"
+            "fin.salir"        => "Salir"
+            "fin.ayuda"        => "Ayuda"
+
+            "marcador.puntos"  => "PUNTOS"
+
+            _                   => clave
+        }
+    }
+
+    marcador(puntos) { <~ " ✦ PUNTOS {puntos} ✦ " }
+
+    texto_partida(n) {
+        ? n == 1 { <~ "Primera partida de la sesión" }
+        <~ "Partida {n} de la sesión"
+    }
+}

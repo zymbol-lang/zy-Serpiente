@@ -1,9 +1,35 @@
-// Serpiente — renderizado: tablero, serpiente, comida, marcador, pantallas
-// Toda salida va directo a la terminal via >>~ (ANSI posicionado)
-// Sin valores de retorno — efectos de lado puros
-// comida es una tupla plana (fila, col); fruta es el string emoji pasado por separado
+// ============================================================
+// dibujo.zy — renderizado: tablero, serpiente, comida, marcador, pantallas
+//
+// Toda salida va directo a la terminal via >>~ (ANSI posicionado).
+// Sin valores de retorno — efectos de lado puros. comida es una
+// tupla plana (fila, col); fruta es el string emoji pasado por
+// separado.
+//
+// Ninguna cadena visible se escribe aquí: todas vienen de
+// idioma/despacho, que guarda el idioma activo como estado de
+// módulo. Por eso ninguna función de este archivo lleva un
+// parámetro de idioma, y por eso el juego puede cambiar de idioma
+// sin desmontar la pila de llamadas.
+//
+// Ningún ancho se teclea aquí tampoco. Las cuatro pantallas se
+// construyen con marco::construir a partir del texto ya traducido,
+// y el marcador se centra midiéndolo. Antes eran literales de
+// ancho fijo con el relleno contado a mano; ver
+// AUDITORIA_I18N_ES.md, SRP-I18N-002 y SRP-I18N-003.
+//
+// EN: dibujo.zy — rendering. No visible string and no width is
+// written here: strings come from idioma/despacho (locale held as
+// module state, so no function takes a language parameter) and
+// frames are built from measured content.
+// ============================================================
 
 # dibujo {
+
+    <# ./idioma/despacho => idioma
+    <# ./texto => txt
+    <# ./marco => marco
+
     #> { menu_velocidad, dibujar_inicio, dibujar, fin_juego, pausa }
 
     // Índices de color ANSI 256
@@ -57,100 +83,204 @@
         <~ "│"
     }
 
-    // Dibuja el marcador de puntos centrado sobre el borde superior (fila 1)
-    // Superpone "╣ ✦ PUNTOS N ✦ ╠" sobre los "═" del borde
-    _marcador(puntos, AN) {
-        col_m = AN / 2 - 7
-        >>~ (1, col_m, 0,      8) > "┤"
-        >>~ (1, col_m + 1, 0, 14) > " ✦ PUNTOS "
-        >>~ (1, col_m + 10, 0, 11) > puntos
-        >>~ (1, col_m + 12, 0, 14) > " ✦ "
-        >>~ (1, col_m + 15, 0,  8) > "├"
+    // ── ayudas de composición ────────────────────────────────
+
+    // Dibuja las filas de un marco ya construido, empezando en
+    // (fila0, col0). `colores` es paralelo a `filas`: un índice de
+    // color ANSI por fila.
+    //
+    // EN: Draw the rows of a built frame from (fila0, col0).
+    // `colores` runs parallel to `filas`, one ANSI index per row.
+    _pintar(filas, colores, fila0, col0) {
+        i = 1
+        @ i <= (filas$#) {
+            >>~ (fila0 + i - 1, col0, 0, colores[i]) > filas[i]
+            i++
+        }
     }
 
-    // Menú de selección de velocidad — retorna retardo en ms (160/130/100/70/40)
+    // Coloca un marco centrado en el interior del tablero y
+    // devuelve su esquina superior izquierda. El interior va de la
+    // fila 2 a la AL+1 y de la columna 2 a la AN+1.
+    //
+    // EN: Centre a frame inside the board and return its top-left
+    // corner. The interior spans rows 2..AL+1, columns 2..AN+1.
+    _esquina(filas, AN, AL) {
+        ancho = txt::ancho(filas[1])
+        alto  = filas$#
+        <~ (2 + (AL - alto) / 2, 2 + (AN - ancho) / 2)
+    }
+
+    // Un array de `n` copias del color `c`, para los marcos en los
+    // que todas las filas van del mismo color.
+    // EN: `n` copies of colour `c`, for single-colour frames.
+    _un_color(n, c) {
+        salida = []
+        i = 1
+        @ i <= n {
+            salida = salida $+ c
+            i++
+        }
+        <~ salida
+    }
+
+    // Dibuja el marcador de puntos centrado sobre el borde superior
+    // (fila 1), superpuesto a los "─" del borde.
+    //
+    // La versión anterior escribía " ✦ PUNTOS " y colocaba las
+    // cinco piezas con los desplazamientos -7, +1, +10, +12 y +15,
+    // derivados de la longitud de esa cadena en español y del
+    // supuesto de que el puntaje cabe en dos dígitos. Ahora el
+    // idioma compone la insignia entera y aquí solo se mide y se
+    // centra, así que vale para "SCORE", para cuatro dígitos y para
+    // un idioma de columnas dobles.
+    //
+    // EN: The score badge over the top border. It used to be five
+    // pieces placed with offsets derived from the length of the
+    // Spanish word and from the assumption that the score fits in
+    // two digits. The locale now composes the whole badge and this
+    // only measures and centres it.
+    _marcador(puntos, AN) {
+        insignia = idioma::marcador(puntos)
+        ancho = txt::ancho(insignia)
+        col = (AN + 2 - ancho) / 2 + 1
+        >>~ (1, col - 1, 0, BORDE) > "┤"
+        >>~ (1, col, 0, COMIDA) > insignia
+        >>~ (1, col + ancho, 0, BORDE) > "├"
+    }
+
+    // Menú de selección de velocidad — retorna retardo en ms
+    // (160/130/100/70/40).
+    //
+    // El menú es datos, no dibujo: una lista de etiquetas y sus
+    // retardos. Antes eran diez literales —cinco opciones en dos
+    // estados— con el relleno tecleado, y traducirlos descuadraba
+    // la caja. Ahora la marca "►" se pone antes de medir, de modo
+    // que el marco tiene sitio para ella en cualquier idioma y las
+    // filas no se mueven al mover el cursor.
+    //
+    // EN: Speed menu — returns the delay in ms. The menu is data,
+    // not drawing code. The "►" marker goes on before measuring, so
+    // the frame has room for it in every language and the rows
+    // never shift when the cursor moves.
     menu_velocidad(AN, AL) {
         >>!
-        fila_c = AL / 2 - 5
-        col_c  = AN / 2 - 15
         sel = 1
+        retardos = [160, 130, 100, 70, 40]
 
         @:sel {
-            >>~ (fila_c,    col_c, 0, TEXTO) > "╭──────────────────────────────╮"
-            >>~ (fila_c+1,  col_c, 0, TEXTO) > "│        Z Y M B O L           │"
-            >>~ (fila_c+2,  col_c, 0, TEXTO) > "│      S E R P I E N T E       │"
-            >>~ (fila_c+3,  col_c, 0, TEXTO) > "├──────────────────────────────┤"
-            >>~ (fila_c+4,  col_c, 0, TEXTO) > "│   Elige tu velocidad:        │"
-            >>~ (fila_c+5,  col_c, 0, TEXTO) > "│                              │"
+            etiquetas = [
+                idioma::texto("menú.lento"),
+                idioma::texto("menú.normal"),
+                idioma::texto("menú.rápido"),
+                idioma::texto("menú.infernal"),
+                idioma::texto("menú.demencial")
+            ]
 
-            // Opciones — inline colors: 15=blanco, 10=verde (seleccionado), 9=rojo, 201=magenta
-            >>~ (fila_c+6,  col_c, 0, 15)  > "│   [1]  Lento      160 ms     │"
-            >>~ (fila_c+7,  col_c, 0, 15)  > "│   [2]  Normal     130 ms     │"
-            >>~ (fila_c+8,  col_c, 0, 15)  > "│   [3]  Rápido     100 ms     │"
-            >>~ (fila_c+9,  col_c, 0,  9)  > "│   [4]  Infernal    70 ms     │"
-            >>~ (fila_c+10, col_c, 0, 201) > "│   [5]  Demencial   40 ms     │ "
-            >>~ (fila_c+11, col_c, 0, TEXTO) > "╰──────────────────────────────╯"
+            líneas = [
+                marco.CENTRADO $+ idioma::texto("menú.título1"),
+                marco.CENTRADO $+ idioma::texto("menú.título2"),
+                marco.SEPARADOR,
+                idioma::texto("menú.velocidad"),
+                ""
+            ]
+            i = 1
+            @ i <= 5 {
+                fila = marco::fila_menú(i, etiquetas[i], i == sel)
+                ms = retardos[i]
+                líneas = líneas $+ (txt::derecha(fila, 18) $+ " {ms} ms")
+                i++
+            }
 
-            ? sel == 1 { >>~ (fila_c+6,  col_c, 0, 10) > "│ ► [1]  Lento      160 ms     │" }
-            ? sel == 2 { >>~ (fila_c+7,  col_c, 0, 10) > "│ ► [2]  Normal     130 ms     │" }
-            ? sel == 3 { >>~ (fila_c+8,  col_c, 0, 10) > "│ ► [3]  Rápido     100 ms     │" }
-            ? sel == 4 { >>~ (fila_c+9,  col_c, 0, 10) > "│ ► [4]  Infernal    70 ms     │" }
-            ? sel == 5 { >>~ (fila_c+10, col_c, 0, 10) > "│ ► [5]  Demencial   40 ms     │" }
+            filas = marco::construir(líneas, 3)
+            // Colores: dos bordes fuera, y dentro un color por
+            // línea de contenido. Las dos últimas opciones tienen
+            // acento propio, y la seleccionada gana a todo.
+            // EN: two border rows outside, one colour per content
+            // line inside; the selected row wins over the accents.
+            colores = [TEXTO, TEXTO, TEXTO, TEXTO, COMIDA, TEXTO]
+            i = 1
+            @ i <= 5 {
+                c = TEXTO
+                ? i == 4 { c = ROJO }
+                ? i == 5 { c = 201 }
+                ? i == sel { c = VERDE }
+                colores = colores $+ c
+                i++
+            }
+            colores = colores $+ TEXTO
+
+            [fila0, col0] = _esquina(filas, AN, AL)
+            _pintar(filas, colores, fila0, col0)
 
             <<| tecla
-            ? tecla == '1' { <~ 160 }
-            ? tecla == '2' { <~ 130 }
-            ? tecla == '3' { <~ 100 }
-            ? tecla == '4' { <~ 70  }
-            ? tecla == '5' { <~ 40  }
-            ? tecla == '\n' {
-                ? sel == 1 { <~ 160 }
-                ? sel == 2 { <~ 130 }
-                ? sel == 3 { <~ 100 }
-                ? sel == 4 { <~ 70  }
-                ? sel == 5 { <~ 40  }
-            }
+            ? tecla == '1' { <~ retardos[1] }
+            ? tecla == '2' { <~ retardos[2] }
+            ? tecla == '3' { <~ retardos[3] }
+            ? tecla == '4' { <~ retardos[4] }
+            ? tecla == '5' { <~ retardos[5] }
+            ? tecla == '\n' { <~ retardos[sel] }
 
             sel = _mover_sel(tecla, sel, 5)
         }
     }
 
-    // Pantalla de ayuda — controles e instrucciones — espera cualquier tecla y retorna
+    // Pantalla de ayuda — controles e instrucciones. Espera
+    // cualquier tecla y retorna.
+    //
+    // El texto largo de la explicación venía partido a mano en tres
+    // filas para caber en 30 columnas. Ahora las dos líneas son
+    // claves independientes y el marco se ajusta a la más ancha del
+    // idioma activo.
+    //
+    // EN: Help screen. The long explanation used to be split by
+    // hand across three rows to fit 30 columns; the two lines are
+    // now separate keys and the frame fits the widest.
     _ayuda(AN, AL) {
         >>!
-        fila_c = AL / 2 - 7
-        col_c  = AN / 2 - 15
+        líneas = [
+            marco.CENTRADO $+ idioma::texto("ayuda.título"),
+            marco.SEPARADOR,
+            idioma::texto("ayuda.movimiento"),
+            "  W / ↑   — " $+ idioma::texto("ayuda.arriba"),
+            "  S / ↓   — " $+ idioma::texto("ayuda.abajo"),
+            "  A / ←   — " $+ idioma::texto("ayuda.izquierda"),
+            "  D / →   — " $+ idioma::texto("ayuda.derecha"),
+            "",
+            idioma::texto("ayuda.enPartida"),
+            "  Q       — " $+ idioma::texto("ayuda.salir"),
+            "  P       — " $+ idioma::texto("ayuda.pausar"),
+            "",
+            idioma::texto("ayuda.crecer1"),
+            idioma::texto("ayuda.crecer2")
+        ]
 
-        >>~ (fila_c,    col_c, 0, 2)  > "╭──────────────────────────────╮"
-        >>~ (fila_c+1,  col_c, 0, 2)  > "│         A Y U D A            │"
-        >>~ (fila_c+2,  col_c, 0, 2)  > "├──────────────────────────────┤"
-        >>~ (fila_c+3,  col_c, 0, 11) > "│  Movimiento:                 │"
-        >>~ (fila_c+4,  col_c, 0, 15) > "│    W / ↑   — arriba          │"
-        >>~ (fila_c+5,  col_c, 0, 15) > "│    S / ↓   — abajo           │"
-        >>~ (fila_c+6,  col_c, 0, 15) > "│    A / ←   — izquierda       │"
-        >>~ (fila_c+7,  col_c, 0, 15) > "│    D / →   — derecha         │"
-        >>~ (fila_c+8,  col_c, 0, 11) > "│  En partida:                 │"
-        >>~ (fila_c+9,  col_c, 0, 15) > "│    Q       — salir           │"
-        >>~ (fila_c+10, col_c, 0, 15) > "│    P       — pausar          │"
-        >>~ (fila_c+11, col_c, 0, 11) > "│  Al comer: la serpiente crece│"
-        >>~ (fila_c+12, col_c, 0, 15) > "│  por la cola en el siguiente │"
-        >>~ (fila_c+13, col_c, 0, 15) > "│  tick de reloj.              │"
-        >>~ (fila_c+14, col_c, 0, 2)  > "╰──────────────────────────────╯"
-        >>~ (fila_c+16, col_c, 0, 0)  > "Presiona cualquier tecla..."
+        filas = marco::construir(líneas, 2)
+        colores = [CABEZA, CABEZA, CABEZA, COMIDA, TEXTO, TEXTO, TEXTO,
+                   TEXTO, TEXTO, COMIDA, TEXTO, TEXTO, TEXTO, COMIDA,
+                   COMIDA, CABEZA]
+
+        [fila0, col0] = _esquina(filas, AN, AL)
+        _pintar(filas, colores, fila0, col0)
+        >>~ (fila0 + (filas$#) + 1, col0, 0, TEXTO) > idioma::texto("ayuda.continuar")
         <<| _tecla_cualquiera
     }
 
-    // Pausa — dibuja un panel centrado y bloquea hasta que se vuelva a presionar P
+    // Pausa — dibuja un panel centrado y bloquea hasta que se
+    // vuelva a presionar P.
+    // EN: Pause panel; blocks until P is pressed again.
     pausa(AN, AL) {
-        fila_c = AL / 2 - 2
-        col_c  = AN / 2 - 10
+        líneas = [
+            "",
+            marco.CENTRADO $+ idioma::texto("pausa.título"),
+            "",
+            "  [P]  " $+ idioma::texto("pausa.continuar")
+        ]
+        filas = marco::construir(líneas, 2)
+        colores = _un_color(filas$#, TEXTO)
 
-        >>~ (fila_c,   col_c, 0, TEXTO) > "╭───────────────────╮"
-        >>~ (fila_c+1, col_c, 0, TEXTO) > "│                   │"
-        >>~ (fila_c+2, col_c, 0, TEXTO) > "│    P A U S A      │"
-        >>~ (fila_c+3, col_c, 0, TEXTO) > "│                   │"
-        >>~ (fila_c+4, col_c, 0, TEXTO) > "│  [P]  continuar   │"
-        >>~ (fila_c+5, col_c, 0, TEXTO) > "╰───────────────────╯"
+        [fila0, col0] = _esquina(filas, AN, AL)
+        _pintar(filas, colores, fila0, col0)
 
         @:espera {
             <<| tecla
@@ -252,8 +382,19 @@
         <~ sel
     }
 
-    // Pantalla de fin de juego — selector con ↑↓ y ↵ para confirmar (N/S/A también funcionan)
-    // partidas y marcadores acumulados con ° en serpiente.zy — retorna 'n' o 's'
+    // Pantalla de fin de juego — selector con ↑↓ y ↵ para
+    // confirmar. Las teclas N/S/A siguen funcionando, pero son
+    // atajos del **español**: quedan como estaban a propósito, y
+    // por eso las etiquetas del menú llevan también su inicial
+    // entre corchetes en el idioma que sea. Un atajo que cambia de
+    // tecla al cambiar de idioma es peor que un atajo fijo.
+    //
+    // partidas y marcadores vienen acumulados con ° en serpiente.zy
+    // — retorna 'n' o 's'.
+    //
+    // EN: Game-over screen. N/S/A still work but they are Spanish
+    // mnemonics, kept fixed on purpose: a shortcut that moves when
+    // the language changes is worse than one that does not.
     fin_juego(puntos, partidas, marcadores, AN, AL) {
         // Deriva el record del historial de puntajes de la sesión
         record = 0
@@ -261,26 +402,48 @@
             ? marcadores[i] > record { record = marcadores[i] }
         }
 
-        fila_c = AL / 2 - 5
-        col_c  = AN / 2 - 10
         sel = 1
 
         @:menu {
             >>!
-            >>~ (fila_c,   col_c, 0, ROJO)  > "╭───────────────────╮"
-            >>~ (fila_c+1, col_c, 0, ROJO)  > "│     J U E G O     │"
-            >>~ (fila_c+2, col_c, 0, ROJO)  > "│   T E R M I N Ó   │"
-            >>~ (fila_c+3, col_c, 0, ROJO)  > "╰───────────────────╯"
-            >>~ (fila_c+5, col_c, 0, TEXTO) > "Puntaje: " puntos "   Record: " record "  "
-            >>~ (fila_c+6, col_c, 0, TEXTO) > "Partida " partidas " de la sesión     "
+            etiquetas = [
+                idioma::texto("fin.nuevo"),
+                idioma::texto("fin.salir"),
+                idioma::texto("fin.ayuda")
+            ]
 
-            // Opciones — inline colors: 10=verde (seleccionado), 15=blanco (normal)
-            >>~ (fila_c+8,  col_c, 0, 15) > "  Nuevo juego   "
-            >>~ (fila_c+9,  col_c, 0, 15) > "  Salir         "
-            >>~ (fila_c+10, col_c, 0, 15) > "  Ayuda         "
-            ? sel == 1 { >>~ (fila_c+8,  col_c, 0, 10) > "► Nuevo juego   " }
-            ? sel == 2 { >>~ (fila_c+9,  col_c, 0, 10) > "► Salir         " }
-            ? sel == 3 { >>~ (fila_c+10, col_c, 0, 10) > "► Ayuda         " }
+            marca_p = idioma::texto("fin.puntaje")
+            marca_r = idioma::texto("fin.récord")
+
+            líneas = [
+                marco.CENTRADO $+ idioma::texto("fin.título1"),
+                marco.CENTRADO $+ idioma::texto("fin.título2"),
+                marco.SEPARADOR,
+                "{marca_p}: {puntos}    {marca_r}: {record}",
+                idioma::texto_partida(partidas),
+                ""
+            ]
+            i = 1
+            @ i <= 3 {
+                marca = "  "
+                ? i == sel { marca = "► " }
+                líneas = líneas $+ (marca $+ etiquetas[i])
+                i++
+            }
+
+            filas = marco::construir(líneas, 3)
+            colores = [ROJO, ROJO, ROJO, ROJO, TEXTO, TEXTO, TEXTO]
+            i = 1
+            @ i <= 3 {
+                c = TEXTO
+                ? i == sel { c = VERDE }
+                colores = colores $+ c
+                i++
+            }
+            colores = colores $+ ROJO
+
+            [fila0, col0] = _esquina(filas, AN, AL)
+            _pintar(filas, colores, fila0, col0)
 
             <<| tecla
 
