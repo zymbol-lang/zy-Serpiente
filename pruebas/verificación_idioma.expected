@@ -1,0 +1,29 @@
+Serpiente — verificación de i18n
+claves: 32   idiomas: 2
+  [es] Español     32/32  OK
+  [en] English     32/32  OK
+frases compuestas
+  [es]  ✦ PUNTOS 0 ✦  ·  ✦ PUNTOS 7 ✦  ·  ✦ PUNTOS 1234 ✦ 
+  [en]  ✦ SCORE 0 ✦  ·  ✦ SCORE 7 ✦  ·  ✦ SCORE 1234 ✦ 
+marcos
+  ╭─────────────────────────╮
+  │    S E R P I E N T E    │
+  ├─────────────────────────┤
+  │   Elige tu velocidad:   │
+  │     [1]  Lento          │
+  │   ► [5]  Demencial      │
+  ╰─────────────────────────╯
+  ╭────────────────────────╮
+  │       S N A K E        │
+  ├────────────────────────┤
+  │   Choose your speed:   │
+  │     [1]  Slow          │
+  │   ► [5]  Insane        │
+  ╰────────────────────────╯
+marcador sobre el borde (ancho de tablero 78)
+  [es]  ✦ PUNTOS 1234 ✦   →  columna 32
+  [en]  ✦ SCORE 1234 ✦   →  columna 33
+rotación
+  es  Español
+  en  English
+PASA — claves, marcos y rotación de idioma
