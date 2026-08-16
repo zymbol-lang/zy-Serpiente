@@ -1,0 +1,152 @@
+// ============================================================
+// pruebas/verificación_lógica.zy — el bucle de partida
+//
+// La otra prueba mira el catálogo de idiomas y la aritmética de
+// marcos. Ninguna miraba logica.zy, así que el día en que el
+// destructuring dejó de aceptar `[a, b] = <tupla>` el juego quedó
+// roto y esta carpeta siguió en verde: la partida entera vive en
+// funciones que devuelven varios valores, y ni una se ejecutaba.
+//
+// Comprueba invariantes, no valores mágicos: cuántos valores
+// devuelve cada función, y que digan lo que deben decir.
+//
+//   zymbol run pruebas/verificación_lógica.zy
+//   zymbol run --vm pruebas/verificación_lógica.zy
+//
+// EN: pruebas/verificación_lógica.zy — the game loop.
+// The other suite covers the locale catalogue and frame arithmetic;
+// nothing covered logica.zy, so when destructuring stopped accepting
+// `[a, b] = <tuple>` the game broke and this directory stayed green.
+// Checks invariants rather than magic values.
+// ============================================================
+
+<# ../logica => l
+
+// _en_serpiente es privada del módulo, así que la prueba lleva la suya.
+// EN: _en_serpiente is module-private, so the suite carries its own.
+choca(cuerpo, pos) {
+    i = 1
+    @ i <= cuerpo$# {
+        ? cuerpo[i] == pos { <~ #1 }
+        i++
+    }
+    <~ #0
+}
+
+fallos = 0
+
+>> "Serpiente — verificación de la lógica de partida" ¶
+>> "" ¶
+
+// ── Las funciones que devuelven varios valores ───────────────────────────────
+// EN: the functions that return several values.
+>> "retornos múltiples" ¶
+
+(valor, sem1) = l::rango_aleatorio(7, 2, 9)
+? valor < 2 || valor > 9 {
+    >> "  FALLA  rango_aleatorio fuera de [2,9]: " valor ¶
+    fallos = fallos + 1
+} _ {
+    >> "  rango_aleatorio    → valor en rango, semilla nueva" ¶
+}
+
+(fruta, sem2) = l::fruta_aleatoria(sem1)
+? fruta == "" {
+    >> "  FALLA  fruta_aleatoria devolvió vacío" ¶
+    fallos = fallos + 1
+} _ {
+    >> "  fruta_aleatoria    → " fruta ¶
+}
+
+serp = [(5,5), (5,4), (5,3)]
+
+(pos, _sem3) = l::nueva_comida(serp, 20, 10, sem2)
+? choca(serp, pos) {
+    >> "  FALLA  la comida cayó sobre la serpiente" ¶
+    fallos = fallos + 1
+} _ {
+    >> "  nueva_comida       → libre de la serpiente" ¶
+}
+
+// ── Un paso del bucle ────────────────────────────────────────────────────────
+// EN: one step of the loop.
+>> "" ¶
+>> "un paso" ¶
+
+(vivo, serp2, _pts, comio) = l::mover(serp, '→', (5,9), 0, 20, 10, #0)
+? !vivo {
+    >> "  FALLA  murió avanzando a una casilla libre" ¶
+    fallos = fallos + 1
+} _ {
+    >> "  mover libre        → vive, cabeza en " serp2[1] ¶
+}
+? comio {
+    >> "  FALLA  comió sin estar sobre la comida" ¶
+    fallos = fallos + 1
+}
+
+// Avanzar justo sobre la comida: come y puntúa.
+// EN: stepping onto the food: eats and scores.
+(_vivo2, _serp3, pts2, comio2) = l::mover(serp, '→', (5,6), 0, 20, 10, #0)
+? !comio2 || pts2 <= 0 {
+    >> "  FALLA  no comió estando sobre la comida (comio=" comio2 " puntos=" pts2 ")" ¶
+    fallos = fallos + 1
+} _ {
+    >> "  mover sobre comida → comió, puntos " pts2 ¶
+}
+
+// Contra la pared: muere.
+// EN: into the wall: dies.
+(vivo3, _serp4, _pts3, _comio3) = l::mover([(1,5)], '↑', (9,9), 0, 20, 10, #0)
+? vivo3 {
+    >> "  FALLA  sobrevivió atravesando el borde superior" ¶
+    fallos = fallos + 1
+} _ {
+    >> "  mover al borde     → muere" ¶
+}
+
+// ── tick_comida conserva o repone ────────────────────────────────────────────
+// EN: tick_comida keeps or replaces.
+>> "" ¶
+>> "tick de comida" ¶
+
+(c0, f0, _s0) = l::tick_comida(#0, serp, 20, 10, 11, (5,9), "🍎")
+? c0 <> (5,9) || f0 <> "🍎" {
+    >> "  FALLA  sin comer cambió comida o fruta" ¶
+    fallos = fallos + 1
+} _ {
+    >> "  no comió           → comida y fruta intactas" ¶
+}
+
+(c1, _f1, _s1) = l::tick_comida(#1, serp, 20, 10, 11, (5,9), "🍎")
+? choca(serp, c1) {
+    >> "  FALLA  la comida repuesta cayó sobre la serpiente" ¶
+    fallos = fallos + 1
+} _ {
+    >> "  comió              → comida repuesta fuera de la serpiente" ¶
+}
+
+// ── Dirección ────────────────────────────────────────────────────────────────
+// EN: direction — a 180° turn is refused.
+>> "" ¶
+>> "dirección" ¶
+
+? l::nueva_dir('a', '→') <> '→' {
+    >> "  FALLA  aceptó el giro de 180°" ¶
+    fallos = fallos + 1
+} _ {
+    >> "  giro inverso       → rechazado" ¶
+}
+? l::nueva_dir('w', '→') <> '↑' {
+    >> "  FALLA  no aceptó un giro válido" ¶
+    fallos = fallos + 1
+} _ {
+    >> "  giro válido        → aceptado" ¶
+}
+
+>> "" ¶
+? fallos == 0 {
+    >> "PASA — retornos múltiples, pasos, tick y dirección" ¶
+} _ {
+    >> "FALLA — " fallos " comprobación(es)" ¶
+}

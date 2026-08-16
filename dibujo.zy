@@ -47,8 +47,8 @@
 
     // Dirección de un punto hacia otro: 'R' 'L' 'U' 'D'
     _dir_hacia(origen, destino) {
-        [or, oc] = origen
-        [dr, dc] = destino
+        (or, oc) = origen
+        (dr, dc) = destino
         ? dc > oc { <~ 'R' }
         ? dc < oc { <~ 'L' }
         ? dr < or { <~ 'U' }
@@ -222,7 +222,7 @@
             }
             colores = colores $+ TEXTO $+ TEXTO $+ COMIDA
 
-            [fila0, col0] = _esquina(filas, AN, AL)
+            (fila0, col0) = _esquina(filas, AN, AL)
             _pintar(filas, colores, fila0, col0)
 
             <<| tecla
@@ -276,7 +276,7 @@
                    TEXTO, TEXTO, COMIDA, TEXTO, TEXTO, TEXTO, COMIDA,
                    COMIDA, CABEZA]
 
-        [fila0, col0] = _esquina(filas, AN, AL)
+        (fila0, col0) = _esquina(filas, AN, AL)
         _pintar(filas, colores, fila0, col0)
         >>~ (fila0 + (filas$#) + 1, col0, 0, TEXTO) > idioma::texto("ayuda.continuar")
         <<| _tecla_cualquiera
@@ -295,7 +295,7 @@
         filas = marco::construir(líneas, 2)
         colores = _un_color(filas$#, TEXTO)
 
-        [fila0, col0] = _esquina(filas, AN, AL)
+        (fila0, col0) = _esquina(filas, AN, AL)
         _pintar(filas, colores, fila0, col0)
 
         @:espera {
@@ -323,24 +323,24 @@
         _marcador(puntos, AN)
 
         // Comida
-        [fy, fx] = comida
+        (fy, fx) = comida
         >>~ (fy, fx, 0, COMIDA) > fruta
 
         // Cabeza
-        [hy, hx] = serpiente[1]
+        (hy, hx) = serpiente[1]
         >>~ (hy, hx, 0, CABEZA) > _char_cabeza(serpiente[1], serpiente[2])
 
         // Cuerpo (segmentos 2..lon-1)
         lon = serpiente$#
         i = 2
         @ i < lon {
-            [sy, sx] = serpiente[i]
+            (sy, sx) = serpiente[i]
             >>~ (sy, sx, 0, VERDE) > _char_cuerpo(serpiente[i-1], serpiente[i], serpiente[i+1])
             i++
         }
 
         // Cola
-        [ty, tx] = serpiente[lon]
+        (ty, tx) = serpiente[lon]
         >>~ (ty, tx, 0, VERDE) > _char_cola(serpiente[lon-1], serpiente[lon])
     }
 
@@ -349,41 +349,41 @@
     // crecer: @ aparece en pos_arroba (panza), cola se queda en su lugar
     // normal: vieja cabeza → cuerpo, cola se elimina y redibuja
     dibujar(serpiente, cola_vieja, crecer, comio, comida_vieja, comida, fruta, puntos, AN, AL, pos_arroba) {
-        [fy_cab, fx_cab] = serpiente[1]
+        (fy_cab, fx_cab) = serpiente[1]
 
         ? comio {
             // Tick de comer: fruta desaparece, movimiento normal (cola sale), nueva comida aparece
-            [fvy, fvx] = comida_vieja
+            (fvy, fvx) = comida_vieja
             >>~ (fvy, fvx, 0, 0) > "  "
             ? serpiente$# >= 3 {
-                [py2, px2] = serpiente[2]
+                (py2, px2) = serpiente[2]
                 >>~ (py2, px2, 0, 10) > _char_cuerpo(serpiente[1], serpiente[2], serpiente[3])
             }
-            [ty, tx] = cola_vieja
+            (ty, tx) = cola_vieja
             >>~ (ty, tx, 0, 0) > " "
             lon = serpiente$#
-            [nty, ntx] = serpiente[lon]
+            (nty, ntx) = serpiente[lon]
             >>~ (nty, ntx, 0, 10) > _char_cola(serpiente[lon-1], serpiente[lon])
-            [fy, fx] = comida
+            (fy, fx) = comida
             >>~ (fy, fx, 0, 11) > fruta
         }
 
         ? crecer {
             // Tick de crecimiento: @ en la panza donde estaba la fruta, cola se queda
-            [ay, ax] = pos_arroba
+            (ay, ax) = pos_arroba
             >>~ (ay, ax, 0, 11) > "@"
         }
 
         ? !comio && !crecer {
             // Tick normal: vieja cabeza → cuerpo, cola sale y se redibuja
             ? serpiente$# >= 3 {
-                [py2, px2] = serpiente[2]
+                (py2, px2) = serpiente[2]
                 >>~ (py2, px2, 0, 10) > _char_cuerpo(serpiente[1], serpiente[2], serpiente[3])
             }
-            [ty, tx] = cola_vieja
+            (ty, tx) = cola_vieja
             >>~ (ty, tx, 0, 0) > " "
             lon = serpiente$#
-            [nty, ntx] = serpiente[lon]
+            (nty, ntx) = serpiente[lon]
             >>~ (nty, ntx, 0, 10) > _char_cola(serpiente[lon-1], serpiente[lon])
         }
 
@@ -462,7 +462,7 @@
             }
             colores = colores $+ ROJO
 
-            [fila0, col0] = _esquina(filas, AN, AL)
+            (fila0, col0) = _esquina(filas, AN, AL)
             _pintar(filas, colores, fila0, col0)
 
             <<| tecla
