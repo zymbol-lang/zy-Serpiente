@@ -1,0 +1,16 @@
+Serpiente — verificación de la lógica de partida
+retornos múltiples
+  rango_aleatorio    → valor en rango, semilla nueva
+  fruta_aleatoria    → 🍋
+  nueva_comida       → libre de la serpiente
+un paso
+  mover libre        → vive, cabeza en (5, 6)
+  mover sobre comida → comió, puntos 1
+  mover al borde     → muere
+tick de comida
+  no comió           → comida y fruta intactas
+  comió              → comida repuesta fuera de la serpiente
+dirección
+  giro inverso       → rechazado
+  giro válido        → aceptado
+PASA — retornos múltiples, pasos, tick y dirección

@@ -25,19 +25,19 @@
     // Emoji de fruta aleatorio — retorna (emoji, semilla_siguiente)
     fruta_aleatoria(semilla) {
         frutas = ["🍎", "🍊", "🍋", "🍇", "🍓", "🫐", "🍑", "🥝", "🍒", "🍉"]
-        [ind, s1] = rango_aleatorio(semilla, 1, 10)
+        (ind, s1) = rango_aleatorio(semilla, 1, 10)
         <~ (frutas[ind], s1)
     }
 
     // Genera posición de comida sin superponerse con la serpiente — retorna (pos, semilla_siguiente)
     nueva_comida(serpiente, AN, AL, semilla) {
         // Columna máxima = AN (no AN+1) — el emoji ocupa 2 cols, la última col válida es AN
-        [r, s1] = rango_aleatorio(semilla, 2, AL + 1)
-        [c, s2] = rango_aleatorio(s1,     2, AN)
+        (r, s1) = rango_aleatorio(semilla, 2, AL + 1)
+        (c, s2) = rango_aleatorio(s1,     2, AN)
         pos = (r, c)
         ? _en_serpiente(serpiente, pos) {
-            [r, s1] = rango_aleatorio(s2, 2, AL + 1)
-            [c, s2] = rango_aleatorio(s1, 2, AN)
+            (r, s1) = rango_aleatorio(s2, 2, AL + 1)
+            (c, s2) = rango_aleatorio(s1, 2, AN)
             pos = (r, c)
         }
         <~ (pos, s2)
@@ -47,8 +47,8 @@
     // Retorna (comida, fruta, semilla) sin cambios cuando no se comió
     tick_comida(comio, serpiente, AN, AL, semilla, comida, fruta) {
         ? !comio { <~ (comida, fruta, semilla) }
-        [npos, s1] = nueva_comida(serpiente, AN, AL, semilla)
-        [nfru, s2] = fruta_aleatoria(s1)
+        (npos, s1) = nueva_comida(serpiente, AN, AL, semilla)
+        (nfru, s2) = fruta_aleatoria(s1)
         <~ (npos, nfru, s2)
     }
 
@@ -86,7 +86,7 @@
     // Retorna (vivo, serpiente, puntos, comio)
     // vivo=#0 → colisión; comio=#1 → comida ingerida (crecimiento se difiere al siguiente tick)
     mover(serpiente, dir, comida, puntos, AN, AL, crecer) {
-        [fr_cab, fc_cab] = serpiente[1]
+        (fr_cab, fc_cab) = serpiente[1]
 
         nf = fr_cab
         nc = fc_cab
@@ -103,7 +103,7 @@
         }
 
         // Detectar si se come la fruta (emoji ancho: col izquierda o derecha cuentan)
-        [fr_com, fc_com] = comida
+        (fr_com, fc_com) = comida
         comio = cab == comida || cab == (fr_com, fc_com + 1)
 
         // Auto-colisión:
