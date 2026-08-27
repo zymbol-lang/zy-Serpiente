@@ -1,0 +1,15 @@
+[package]
+name = "serpiente"
+version = "0.1.0"
+engine = ">=0.0.9"
+mode = "vm"
+
+[[script]]
+name = "serpiente"
+path = "serpiente.zy"
+default = true
+
+[[script]]
+name = "snake"
+path = "snake.zy"
+default = false
