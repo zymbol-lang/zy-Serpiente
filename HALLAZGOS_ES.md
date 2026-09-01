@@ -195,7 +195,7 @@ Funcionalidades que Zymbol declara soportar pero que fallan en condiciones espec
 ## HLZ-SRP-001 · El tree-walker pierde la escritura de estado de módulo cuando la función también devuelve un valor
 
 - **Tipo:** Bug grave (comportamiento silenciosamente incorrecto, solo en el motor por defecto)
-- **Estado:** **Corregido en el intérprete** (2026-07-27)
+- **Estado:** **Corregido en el intérprete — v0.0.8** (arreglado el 2026-07-27)
 - **Encontrado en:** `idioma/despacho.zy`, al escribir `rotar()`
 - **Motores:** falla en el **tree-walker**; la **VM es correcta**
 
@@ -491,15 +491,25 @@ Mejoras al lenguaje Zymbol inspiradas directamente en la experiencia de construi
 
 | Categoría | Total | Abiertos | Con workaround | Propuestos | Resueltos | Descartados | Excluidos |
 |-----------|-------|----------|----------------|------------|-----------|-------------|-----------|
-| BUG | 6 | 1 | 1 | 0 | 5 | 0 | 0 |
+| BUG | 6 | 0 | 1 | 0 | 6 | 0 | 0 |
 | GAP | 6 | 0 | 0 | 0 | 4 | 1 | 1 |
 | ERROR | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | IDEA | 1 | 0 | 0 | 1 | 0 | 0 | 0 |
-| **Total** | **13** | **1** | **1** | **1** | **9** | **1** | **1** |
+| **Total** | **13** | **0** | **1** | **1** | **10** | **1** | **1** |
 
-El abierto es [HLZ-SRP-001](#hlz-srp-001--el-tree-walker-pierde-la-escritura-de-estado-de-módulo-cuando-la-función-también-devuelve-un-valor),
-encontrado el 2026-07-26 al añadir el cambio de idioma en caliente. Tiene
-workaround aplicado y repro mínimo.
+**No queda ninguno abierto.** El último era
+[HLZ-SRP-001](#hlz-srp-001--el-tree-walker-pierde-la-escritura-de-estado-de-módulo-cuando-la-función-también-devuelve-un-valor),
+encontrado el 2026-07-26 al añadir el cambio de idioma en caliente y **corregido
+en el intérprete en v0.0.8**. La columna *con workaround* lo sigue contando
+porque su rodeo se mantiene a propósito —está explicado en su ficha—, no porque
+el bug siga vivo.
+
+> **Esta tabla dijo «1 abierto» durante las tres versiones siguientes al
+> arreglo**, mientras la ficha de HLZ-SRP-001 decía «Corregido» tres secciones
+> más arriba. Un documento que se contradice manda a alguien a arreglar lo que ya
+> está arreglado. Verificado el 2026-08-31 con
+> `zyq show corpus/modules_scope/mod_state_return.zy`: los tres motores devuelven
+> `estado=en`.
 
 ---
 
@@ -515,6 +525,9 @@ Entradas movidas aquí cuando pasan a estado `resuelto`.
 | GAP-003 | TuiBlock no garantiza cleanup al usar `@:label!` en el VM | v0.0.5 | `struct TuiGuard` con `Drop` en `zymbol-vm/src/lib.rs`. `run()` mantiene `tui_stack: Vec<TuiGuard>` — `EnterTui` push, `ExitTui` pop. Cleanup garantizado en cualquier ruta de salida. |
 | GAP-005 | Sin soporte de estilos de texto en `>>~` | v0.0.5 | Nuevo orden de slots `(fila, col, BKS, fg, bg)` + sintaxis sparse `>>~(,,,fg,bg)>`. BKS = bitmask 1=Bold/2=Italic/4=Underline. Slot ausente = `None` = no tocar ese parámetro. `Attribute::Reset` al finalizar. `dibujo.zy` migrado de 3 → 4 args en todas las llamadas. |
 | GAP-006 | LSP no reconoce `<<|` como definición de variable | v0.0.5 | En `type_check.rs`: `Statement::KeyInput` añadido en `check_statement()` y `define_local_vars_from_block()`. La variable se registra como `ZymbolType::Char` — el mismo tipo que produce `<<|` en runtime. |
+| HLZ-SRP-001 | El tree-walker pierde la escritura de estado de módulo cuando la función también devuelve un valor | v0.0.8 | La optimización *MoveOrClone* de `Statement::Return` sacaba el identificador del scope en vez de clonarlo, y el write-back del estado de módulo no encontraba luego la clave. `current_output_params` pasa a `move_guard_names` y guarda también las variables de módulo inyectadas en el marco. Regresión: `zyquality/corpus/modules_scope/mod_state_return.zy`. |
+| BUG-003 | Asignación condicional en loop no propaga a partir de la 2.ª iteración | — | No reproducible en el intérprete actual. El workaround `tick_comida` permanece como diseño definitivo: función pura, más testeable. |
+| BUG-004 | `mover` no detecta colisión con la columna derecha del emoji | — | Resuelto en el propio juego. |
 | BUG-005 | Igualdad de tuplas siempre `#0` en el VM | v0.0.5 | En `zymbol-vm/src/lib.rs`: arm `(Tuple, Tuple)` añadido a `cmp_direct()` (comparación lexicográfica recursiva) y a `Value::equals()` (igualdad elemento a elemento). Descubierto probando `zymbol run --vm serpiente.zy` — el marcador de puntos no incrementaba al comer la primera fruta. |
 
 ---
