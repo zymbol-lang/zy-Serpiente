@@ -149,4 +149,5 @@ serp = [(5,5), (5,4), (5,3)]
     >> "PASA — retornos múltiples, pasos, tick y dirección" ¶
 } _ {
     >> "FALLA — " fallos " comprobación(es)" ¶
+    <~ 1
 }
