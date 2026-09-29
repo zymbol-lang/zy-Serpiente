@@ -17,10 +17,12 @@
 # ============================================================
 #
 # ── NOTE ─────────────────────────────────────────────────────────────────
-# This script is not the authority any more. It decides correctness by
-# grepping the suite's output for FALLA, so a suite that crashes half way
-# through prints no FALLA and passes — that is not hypothetical, it was
-# measured. It also runs two engines of the four.
+# This script is not the authority. It used to decide correctness by
+# grepping the suite's output for FALLA, so a suite that crashed half way
+# through printed no FALLA and passed — measured, not supposed. Since
+# 2026-09-29 each suite ends a failing run with `<~ 1` (IDEA-GOL-012), and
+# a crash exits non-zero anyway, so this reads the exit status instead.
+# It still runs two engines of the three.
 #
 # The gate is in ZyQuality, which compares each suite against a golden (a
 # truncated run does not match one) and runs every engine that can:
@@ -41,8 +43,9 @@ for motor in "" "--vm"; do
         etiqueta="$suite ${motor:-tree-walker}"
         echo "─── $etiqueta"
         salida=$(zymbol run $motor "$suite" 2>&1)
+        estado=$?
         echo "$salida" | tail -1
-        if echo "$salida" | grep -q "FALLA"; then
+        if [ "$estado" -ne 0 ]; then
             echo "$salida"
             fallo=1
         fi
