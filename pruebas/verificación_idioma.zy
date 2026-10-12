@@ -170,4 +170,5 @@ idioma::fijar("es")
     >> "PASA — claves, marcos y rotación de idioma" ¶
 } _ {
     >> "FALLA — " faltan " sin traducir, " descuadres " filas descuadradas, " rotos " fallos de rotación" ¶
+    <~ 1
 }
