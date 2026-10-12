@@ -1,5 +1,7 @@
 # Serpiente
 
+🌐 [zymbol-lang.org](https://zymbol-lang.org) · ▶ [playground](https://zymbol-lang.org/playground.html)
+
 > **Apunta a Zymbol v0.0.8** — revisado el 2026-07-26
 
 Snake clásico corriendo en la terminal, escrito completamente en Zymbol.
