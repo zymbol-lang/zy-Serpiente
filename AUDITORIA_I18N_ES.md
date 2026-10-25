@@ -10,7 +10,7 @@ lenguaje**, este documento registra carencias **del proyecto**.
 incrustado dentro de marcos de ancho fijo tecleados a mano. Fue el primer TUI real
 del lenguaje (v0.0.5) y se escribió antes de que existiera ninguna doctrina de i18n
 y antes de que existiera `std/term`. La doctrina está ahora en
-[interpreter/USERAPPI18N.md](../interpreter/USERAPPI18N.md) y la referencia
+`zymbol-design/USERAPPI18N.md` y la referencia
 implementada en [囲碁](../GO/).
 
 | ID | Tipo | Descripción | Estado |
@@ -170,7 +170,7 @@ implementada en [囲碁](../GO/).
 - **Descripción:** tras el retrofit el juego era bilingüe, pero elegir idioma
   significaba elegir con qué archivo arrancar: `serpiente.zy` o `snake.zy`. Es el
   punto 9 de la lista de comprobación de
-  [USERAPPI18N.md](../interpreter/USERAPPI18N.md), y el que menos se puede dar por
+  `zymbol-design/USERAPPI18N.md`, y el que menos se puede dar por
   cubierto con puntos de entrada: quien arranca `serpiente.zy` y no lee español no
   tiene por qué saber que existe el otro archivo. Un selector de idioma sirve
   justamente a quien no entiende el idioma en curso.
