@@ -38,7 +38,7 @@ cd "$(dirname "$0")/.."
 
 fallo=0
 
-for motor in "" "--vm"; do
+for motor in "--tw" "--vm"; do
     for suite in pruebas/verificación_idioma.zy pruebas/verificación_lógica.zy; do
         etiqueta="$suite ${motor:-tree-walker}"
         echo "─── $etiqueta"
